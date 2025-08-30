@@ -57,7 +57,7 @@ Generate a focused search query (2-4 keywords) that will find related behavioral
 
 Return only the search query, no explanation."""
 
-MULTI_CANDIDATE_GENERATION_PROMPT = """You are an intelligent behavioral assistant that provides highly contextual, personalized suggestions with direct solutions when possible.
+MULTI_CANDIDATE_GENERATION_PROMPT = """You are a HYPER-SPECIFIC AI assistant that MUST provide concrete, actionable solutions based on behavioral patterns + current screen activity. NO GENERIC ADVICE ALLOWED.
 
 CURRENT BEHAVIORAL TRIGGER:
 The user just demonstrated: "{trigger_text}"
@@ -68,63 +68,99 @@ RELATED BEHAVIORAL PATTERNS:
 CURRENT SCREEN CONTEXT:
 {current_screen_context}
 
-ADVANCED ANALYSIS FRAMEWORK:
-Analyze the behavioral data to identify:
+CRITICAL RULES - VIOLATION MEANS REJECTION:
+1. **MUST reference specific apps/tools** you see in screen context (Canva, Instagram, Clash Royale, etc.)
+2. **MUST mention specific projects/content** (Sequestron, DECA events, specific Instagram profiles, etc.)
+3. **MUST connect to behavioral patterns** (short gaming sessions, iterative design work, multiple profile management, etc.)
+4. **MUST provide immediate, actionable solutions** (not generic productivity tips)
+5. **MUST predict next 5-30 minute needs** based on current activity + patterns
 
-1. **Specific Challenges**: What concrete problems, knowledge gaps, or obstacles does the user face?
-2. **Timing Patterns**: When does the user work? Are there productivity/focus timing insights?
-3. **Content Context**: What specific content, tools, or domains is the user working with?
-4. **Workflow Inefficiencies**: What repetitive tasks, suboptimal processes, or friction points exist?
-5. **Cross-Pattern Insights**: How do multiple behavioral patterns interact to reveal opportunities?
+ANTICIPATION FRAMEWORK:
+You must PREDICT the user's next needs by analyzing:
 
-SOLUTION-FIRST APPROACH:
-When identifying gaps or research needs, PROVIDE the actual solution when possible:
-- If user needs missing terminology → Include the actual terms/definitions
-- If user needs research links → Provide relevant URLs or resources  
-- If user needs explanations → Give brief, actionable explanations
-- If user needs examples → Include specific examples
-- If user needs steps → List the actual steps
-- If user needs answers → Provide the answers directly
+1. **Current State Analysis**: What specific app/project is the user currently using? What are they doing RIGHT NOW?
+2. **Pattern Progression**: What typically happens after this specific behavior based on their history?
+3. **Timing Predictions**: When will they likely need help next based on their patterns?
+4. **Workflow Anticipation**: What specific tools/resources will they need for their current project?
+5. **Content Prediction**: What specific information will they search for based on their current activity?
+6. **Obstacle Prevention**: What specific problems can you prevent based on their behavioral patterns?
+7. **Current vs. Optimal Assessment**: Is what they're currently using optimal? What specific changes would improve their current situation?
 
-Only suggest "research X" when the information is too complex, personal, or specialized to provide directly.
+CRITICAL INSTRUCTION: You MUST provide specific, actionable solutions that reference their current activity and behavioral patterns. NO GENERIC ADVICE.
 
-TASK: Generate 5 sophisticated, solution-oriented suggestions that:
-- SOLVE specific challenges mentioned in the behavioral data (don't just suggest research)
-- PROVIDE actual information, links, terminology, or answers when possible
-- LEVERAGE timing insights for better scheduling/focus
-- INCLUDE concrete solutions with specific details
-- CROSS-REFERENCE multiple behavioral patterns for comprehensive solutions
+ANTICIPATION REQUIREMENTS:
+1. **Analyze Current State**: What specific app/project is the user currently using? Is it optimal?
+2. **Predict Next Steps**: What will the user need in the next 5-30 minutes based on their patterns?
+3. **Prevent Future Problems**: What specific obstacles can you eliminate now based on their history?
+4. **Prepare Resources**: What specific tools/info will they need soon for their current project?
+5. **Timing Optimization**: When should they do what for maximum efficiency based on their patterns?
+6. **Pattern-Based Prediction**: Use behavioral history to predict future needs
+7. **Current Optimization**: What specific changes would improve their current situation RIGHT NOW?
+
+ABSOLUTELY FORBIDDEN SUGGESTIONS (Too Generic):
+❌ "Utilize deck building guides" (generic advice)
+❌ "Research techniques for improvement" (generic research)
+❌ "Look up best practices" (generic best practices)
+❌ "Find helpful tools" (generic tool discovery)
+❌ "Schedule breaks to enhance focus" (generic productivity)
+❌ "Check internet stability" (generic troubleshooting)
+❌ "Use elixir wisely" (generic gaming advice)
+❌ "Enable collaboration features" (generic feature suggestion)
+
+REQUIRED HYPER-SPECIFIC FORMAT:
+Each suggestion MUST:
+- Reference the specific app/project they're currently using
+- Connect to their specific behavioral patterns
+- Predict what they'll need next based on their history
+- Provide specific, actionable solutions they can do RIGHT NOW
+- Prevent specific problems based on their patterns
+- Optimize timing based on their behavioral insights
+
+TASK: Generate 5 HYPER-SPECIFIC suggestions that:
+- Reference specific apps/projects from current screen activity
+- Connect to specific behavioral patterns from their history
+- Predict future needs based on current activity + patterns
+- Provide specific solutions they can implement RIGHT NOW
+- Prevent specific problems based on their patterns
+- Include specific resources/tools they'll need soon
 
 SUGGESTION CATEGORIES:
-- direct_solution: Provides immediate answers/information for identified gaps
-- timing_optimization: Schedules tasks based on behavioral timing patterns
-- workflow_improvement: Specific tool/process improvements with implementation details  
-- content_completion: Fills in missing information or provides needed resources
-- proactive_solution: Anticipates future needs with ready solutions
+- predictive_solution: Anticipates needs 5-30 minutes ahead
+- obstacle_prevention: Prevents specific problems based on patterns
+- resource_preparation: Prepares specific tools/info they'll need soon
+- timing_optimization: Schedules tasks based on behavioral patterns
+- workflow_anticipation: Predicts next workflow steps
 
 Return JSON in this exact format:
 {{
   "suggestions": [
     {{
-      "title": "Direct, solution-focused title (max 60 chars)",
-      "description": "Detailed solution with specific information, links, answers, or steps (max 300 chars)",
-      "category": "direct_solution|timing_optimization|workflow_improvement|content_completion|proactive_solution",
-      "rationale": "Evidence-based reasoning connecting behavioral patterns to the provided solution (max 200 chars)",
+      "title": "Hyper-specific title referencing current activity (max 60 chars)",
+      "description": "Specific solution based on current activity + behavioral patterns (max 300 chars)",
+      "category": "predictive_solution|obstacle_prevention|resource_preparation|timing_optimization|workflow_anticipation",
+      "rationale": "Evidence-based prediction using specific behavioral patterns + current activity (max 200 chars)",
       "priority": "high|medium|low"
     }},
     ...
   ]
 }}
 
-EXAMPLES OF SOLUTION-FIRST SUGGESTIONS:
-❌ "Research DECA terminology for missing prompts"
-✅ "DECA integration completes as: 'Integrates into Career and Technical Education (CTE) Instruction' - add this to your quiz review"
+EXAMPLES OF HYPER-SPECIFIC SUGGESTIONS:
+❌ "Use elixir wisely in Clash Royale"
+✅ "You're in a Clash Royale match. Based on your pattern of losing to air units, you'll need a counter-deck in the next 2-3 games. Here's your anti-air deck: Giant + Witch + Valkyrie + Fireball. Deploy Giant first, then Witch behind for air coverage."
 
-❌ "Look up productivity techniques for late-night work"  
-✅ "Since you work past 11 PM, use the Pomodoro Technique: 25min work, 5min break. Blue light filters after 10 PM improve focus"
+❌ "Schedule breaks to enhance focus"
+✅ "You're working on the Sequestron project in Canva. Based on your pattern of creating multiple copies for iterations, enable Canva's collaboration features now so you can share with your team and get feedback on the current version before making more copies."
 
-❌ "Find documentation tools for your project"
-✅ "Use Notion templates for educational content: Create sections for Questions, Answers, Sources. Template link: notion.so/templates/education"""
+❌ "Enable collaboration features"
+✅ "You're in Canva working on Sequestron. Based on your pattern of managing multiple profiles (PleasantonUSD, John, Arnav), switch to your main profile now and enable collaboration so your team can access the project directly instead of you having to share copies."
+
+❌ "Check internet stability"
+✅ "You're trying to message Krish on Instagram about the slideshow. Based on your pattern of communication challenges due to privacy settings, send Krish a follow request now so you can message him directly about the project instead of waiting for him to see your story."
+
+❌ "Research productivity techniques"
+✅ "You're working on DECA events research. Based on your pattern of using ChatGPT for information, open ChatGPT now and ask 'What are the key DECA events and dates for this year?' to get the specific information you'll need for planning."
+"""
 
 UTILITY_SCORING_PROMPT = """You are a suggestion utility evaluator. Score each suggestion based on expected value for the user.
 

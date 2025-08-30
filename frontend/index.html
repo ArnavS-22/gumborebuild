@@ -6,7 +6,7 @@
     <title>Zavion</title>
     <link rel="stylesheet" href="static/css/styles.css?v=9">
     <link rel="stylesheet" href="static/css/suggestions.css">
-    <link rel="stylesheet" href="static/css/chat.css">
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -218,9 +218,7 @@
                     <div class="sidebar-section active">
                         <h3>Suggestions</h3>
                     </div>
-                    <div class="sidebar-section">
-                        <h3>Active Chats</h3>
-                    </div>
+
                 </div>
                 
                 <!-- Main Content Area -->
@@ -257,62 +255,7 @@
     <!-- Toast Notifications -->
     <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
-    <!-- Chat Modal -->
-    <div class="chat-modal" id="chatModal" style="display: none;">
-        <div class="chat-layout">
-            <!-- Left Sidebar -->
-            <div class="chat-sidebar">
-                <div class="chat-sidebar-header">
-                    <h3>Active Chats</h3>
-                    <button class="chat-close-btn" id="closeChatModal">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="chat-list" id="chatList">
-                    <!-- Active chats will be populated here -->
-                </div>
-            </div>
-            
-            <!-- Main Chat Area -->
-            <div class="chat-main">
-                <div class="chat-header" id="chatHeader">
-                    <h2 id="chatTitle">Select a chat</h2>
-                    <div class="chat-status">
-                        <span class="status-indicator"></span>
-                        <span id="chatStatus">Ready</span>
-                    </div>
-                </div>
-                
-                <div class="chat-messages" id="chatMessages">
-                    <div class="chat-welcome">
-                        <i class="fas fa-comments"></i>
-                        <h3>No chat selected</h3>
-                        <p>Select an active chat from the sidebar or start a new conversation from a suggestion.</p>
-                    </div>
-                </div>
-                
-                <div class="chat-input-area" id="chatInputArea" style="display: none;">
-                    <div class="chat-input-container">
-                        <textarea 
-                            id="chatInput" 
-                            placeholder="Type your message..." 
-                            rows="1"
-                            maxlength="2000"
-                        ></textarea>
-                        <button class="chat-send-btn" id="chatSendBtn" disabled>
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                    <div class="chat-input-footer">
-                        <span class="char-count" id="charCount">0/2000</span>
-                        <span class="typing-indicator" id="typingIndicator" style="display: none;">
-                            AI is typing...
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <script src="static/js/app.js?v=2"></script>
 

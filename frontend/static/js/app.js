@@ -2508,9 +2508,7 @@ class ZavionApp {
                             <button class="action-btn" onclick="window.zavionApp.copySuggestion(${index})">
                                 📋 Copy
                             </button>
-                            <button class="action-btn" onclick="window.zavionApp.chatAboutSuggestion(${index})">
-                                💬 Discuss
-                            </button>
+
                         </div>
                     </div>
                 `).join('')}
@@ -2536,15 +2534,7 @@ class ZavionApp {
         });
     }
 
-    chatAboutSuggestion(index) {
-        if (!this.currentSuggestions || !this.currentSuggestions[index]) return;
-        
-        const suggestion = this.currentSuggestions[index];
-        // For now, just switch to chat tab and show a message
-        // In a full implementation, you'd pre-populate the chat with the suggestion
-        this.switchTab('chat');
-        this.showToast(`Ready to discuss: ${suggestion.title}`, 'info');
-    }
+
 
     displaySuggestions(suggestionsData) {
         const content = document.getElementById('suggestionsContent');
@@ -2593,8 +2583,7 @@ class ZavionApp {
 
         content.innerHTML = suggestionsHtml;
         
-        // Add event listeners to Open Chat buttons
-        this.setupSuggestionChatButtons();
+
         
         this.showToast('Suggestions generated successfully!', 'success');
     }
@@ -2619,10 +2608,7 @@ class ZavionApp {
                         ${suggestion.description}
                 </div>
                     
-                    <button class="suggestion-open-chat" data-suggestion="${suggestionJson}">
-                        <i class="fas fa-comments"></i>
-                        Open Chat
-                    </button>
+
             </div>
         `;
         });
@@ -2635,419 +2621,29 @@ class ZavionApp {
         return sectionHtml;
     }
 
-    setupSuggestionChatButtons() {
-        const chatButtons = document.querySelectorAll('.suggestion-open-chat');
-        chatButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                try {
-                    const suggestionData = JSON.parse(e.target.closest('.suggestion-open-chat').dataset.suggestion.replace(/&quot;/g, '"'));
-                    this.openSuggestionChat(suggestionData);
-                } catch (error) {
-                    console.error('Error parsing suggestion data:', error);
-                    this.showToast('Error opening chat', 'error');
-                }
-            });
-        });
-    }
 
-    openSuggestionChat(suggestion) {
-        console.log('Opening chat for suggestion:', suggestion);
-        
-        // Open the chat modal
-        this.openChatModal();
-        
-        // Initialize or switch to this chat
-        this.initializeSuggestionChat(suggestion);
-    }
 
-    // ================================
-    // Chat System Implementation
-    // ================================
-    
-    openChatModal() {
-        const chatModal = document.getElementById('chatModal');
-        if (chatModal) {
-            chatModal.style.display = 'flex';
-            chatModal.setAttribute('aria-hidden', 'false');
-            
-            // Setup modal event listeners if not already done
-            if (!this.chatModalInitialized) {
-                this.setupChatModalListeners();
-                this.chatModalInitialized = true;
-            }
-        }
-    }
-    
-    closeChatModal() {
-        const chatModal = document.getElementById('chatModal');
-        if (chatModal) {
-            chatModal.style.display = 'none';
-            chatModal.setAttribute('aria-hidden', 'true');
-        }
-    }
-    
-    setupChatModalListeners() {
-        // Close button
-        const closeBtn = document.getElementById('closeChatModal');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => this.closeChatModal());
-        }
-        
-        // Close on backdrop click
-        const chatModal = document.getElementById('chatModal');
-        if (chatModal) {
-            chatModal.addEventListener('click', (e) => {
-                if (e.target === chatModal) {
-                    this.closeChatModal();
-                }
-            });
-        }
-        
-        // Escape key to close
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && chatModal && chatModal.style.display === 'flex') {
-                this.closeChatModal();
-            }
-        });
-        
-        // Chat input handling
-        const chatInput = document.getElementById('chatInput');
-        const chatSendBtn = document.getElementById('chatSendBtn');
-        
-        if (chatInput) {
-            // Auto-resize textarea
-            chatInput.addEventListener('input', () => {
-                this.updateCharCount();
-                this.autoResizeTextarea(chatInput);
-                this.toggleSendButton();
-            });
-            
-            // Send on Enter (but not Shift+Enter)
-            chatInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    this.sendChatMessage();
-                }
-            });
-        }
-        
-        if (chatSendBtn) {
-            chatSendBtn.addEventListener('click', () => this.sendChatMessage());
-        }
-    }
-    
-    updateCharCount() {
-        const chatInput = document.getElementById('chatInput');
-        const charCount = document.getElementById('charCount');
-        
-        if (chatInput && charCount) {
-            const length = chatInput.value.length;
-            charCount.textContent = `${length}/2000`;
-            
-            // Update styling based on character count
-            charCount.classList.remove('warning', 'error');
-            if (length > 1800) {
-                charCount.classList.add('error');
-            } else if (length > 1500) {
-                charCount.classList.add('warning');
-            }
-        }
-    }
-    
-    autoResizeTextarea(textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-    }
-    
-    toggleSendButton() {
-        const chatInput = document.getElementById('chatInput');
-        const chatSendBtn = document.getElementById('chatSendBtn');
-        
-        if (chatInput && chatSendBtn) {
-            const hasText = chatInput.value.trim().length > 0;
-            const withinLimit = chatInput.value.length <= 2000;
-            chatSendBtn.disabled = !hasText || !withinLimit;
-        }
-    }
-    
-    initializeSuggestionChat(suggestion) {
-        // Store current chat context
-        this.currentChatContext = {
-            suggestion: suggestion,
-            messages: [],
-            conversationId: null
-        };
-        
-        // Update chat header
-        const chatTitle = document.getElementById('chatTitle');
-        if (chatTitle) {
-            chatTitle.textContent = suggestion.title;
-        }
-        
-        // Show input area
-        const chatInputArea = document.getElementById('chatInputArea');
-        if (chatInputArea) {
-            chatInputArea.style.display = 'block';
-        }
-        
-        // Clear and setup messages area
-        this.displayChatWelcome(suggestion);
-        
-        // Add to chat list sidebar
-        this.addToActiveChatsList(suggestion);
-        
-        // Focus on input
-        const chatInput = document.getElementById('chatInput');
-        if (chatInput) {
-            chatInput.focus();
-        }
-    }
-    
-    displayChatWelcome(suggestion) {
-        const chatMessages = document.getElementById('chatMessages');
-        if (!chatMessages) return;
-        
-        const welcomeHtml = `
-            <div class="chat-message assistant">
-                <div class="message-content">
-                    <p><strong>${suggestion.title}</strong></p>
-                    <p>${suggestion.description}</p>
-                    
-                    ${suggestion.action_items && suggestion.action_items.length > 0 ? `
-                        <div style="margin-top: 1rem;">
-                            <strong>Suggested Actions:</strong>
-                            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
-                                ${suggestion.action_items.map(item => `<li>${item}</li>`).join('')}
-                            </ul>
-                        </div>
-                    ` : ''}
-                    
-                    <p style="margin-top: 1rem; font-style: italic; color: var(--text-secondary);">
-                        Hi! I'm here to help you with this suggestion. Feel free to ask questions or let me know how you'd like to proceed.
-                    </p>
-                </div>
-                <div class="message-meta">
-                    <span class="message-time">${this.getTimeAgo(suggestion.created_at)}</span>
-                        </div>
-                    </div>
-                `;
-        
-        chatMessages.innerHTML = welcomeHtml;
-        this.scrollToBottom(chatMessages);
-    }
-    
-    addToActiveChatsList(suggestion) {
-        const chatList = document.getElementById('chatList');
-        if (!chatList) return;
-        
-        // Check if this chat already exists
-        const existingChat = chatList.querySelector(`[data-chat-id="${suggestion.title}"]`);
-        if (existingChat) {
-            // Mark as active
-            chatList.querySelectorAll('.chat-list-item').forEach(item => item.classList.remove('active'));
-            existingChat.classList.add('active');
-            return;
-        }
-        
-        // Create new chat list item
-        const chatItem = document.createElement('div');
-        chatItem.className = 'chat-list-item active';
-        chatItem.dataset.chatId = suggestion.title;
-        
-        const preview = suggestion.description.length > 60 
-            ? suggestion.description.substring(0, 60) + '...'
-            : suggestion.description;
-        
-        chatItem.innerHTML = `
-            <div class="chat-item-title">${suggestion.title}</div>
-            <div class="chat-item-preview">${preview}</div>
-            <div class="chat-item-time">${this.getTimeAgo(suggestion.created_at)}</div>
-        `;
-        
-        // Add click handler
-        chatItem.addEventListener('click', () => {
-            this.switchToChat(suggestion);
-        });
-        
-        // Mark other chats as inactive
-        chatList.querySelectorAll('.chat-list-item').forEach(item => item.classList.remove('active'));
-        
-        // Add to top of list
-        chatList.insertBefore(chatItem, chatList.firstChild);
-        
-        // Remove empty state if present
-        const emptyState = chatList.querySelector('.chat-list-empty');
-        if (emptyState) {
-            emptyState.remove();
-        }
-    }
-    
-    switchToChat(suggestion) {
-        // Update active chat in sidebar
-        const chatList = document.getElementById('chatList');
-        if (chatList) {
-            chatList.querySelectorAll('.chat-list-item').forEach(item => {
-                item.classList.remove('active');
-                if (item.dataset.chatId === suggestion.title) {
-                    item.classList.add('active');
-                }
-            });
-        }
-        
-        // Load chat context
-        this.initializeSuggestionChat(suggestion);
-    }
-    
-    async sendChatMessage() {
-        const chatInput = document.getElementById('chatInput');
-        if (!chatInput || !this.currentChatContext) return;
-        
-        const message = chatInput.value.trim();
-        if (!message) return;
-        
-        // Disable input while processing
-        chatInput.disabled = true;
-        const chatSendBtn = document.getElementById('chatSendBtn');
-        if (chatSendBtn) {
-            chatSendBtn.disabled = true;
-        }
-        
-        try {
-            // Add user message to UI
-            this.addMessageToChat('user', message);
-            
-            // Clear input
-            chatInput.value = '';
-            this.updateCharCount();
-            this.autoResizeTextarea(chatInput);
-            
-            // Show typing indicator
-            this.showTypingIndicator();
-            
-            // Prepare chat request
-            const chatRequest = {
-                message: message,
-                suggestion_context: this.currentChatContext.suggestion,
-                chat_history: this.currentChatContext.messages.slice(-10) // Last 10 messages
-            };
-            
-            // Send to backend
-            const response = await fetch(`${this.apiBaseUrl}/chat/suggestion?user_name=Arnav Sharma`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(chatRequest)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const chatResponse = await response.json();
-            
-            // Hide typing indicator
-            this.hideTypingIndicator();
-            
-            // Add assistant response to UI
-            this.addMessageToChat('assistant', chatResponse.message);
-            
-            // Store conversation ID
-            if (chatResponse.conversation_id) {
-                this.currentChatContext.conversationId = chatResponse.conversation_id;
-            }
-            
-        } catch (error) {
-            console.error('Error sending chat message:', error);
-            this.hideTypingIndicator();
-            this.addMessageToChat('assistant', 'Sorry, I encountered an error processing your message. Please try again.');
-            this.showToast('Failed to send message', 'error');
-        } finally {
-            // Re-enable input
-            chatInput.disabled = false;
-            chatInput.focus();
-            this.toggleSendButton();
-        }
-    }
-    
-    addMessageToChat(role, content) {
-        const chatMessages = document.getElementById('chatMessages');
-        if (!chatMessages) return;
-        
-        const timestamp = new Date().toISOString();
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message ${role}`;
-        
-        messageDiv.innerHTML = `
-            <div class="message-content">${this.formatMessageContent(content)}</div>
-            <div class="message-meta">
-                <span class="message-time">Just now</span>
-            </div>
-        `;
 
-        chatMessages.appendChild(messageDiv);
-        this.scrollToBottom(chatMessages);
-        
-        // Store in chat context
-        if (this.currentChatContext) {
-            this.currentChatContext.messages.push({
-                role: role,
-                content: content,
-                timestamp: timestamp
-            });
-        }
-    }
+
+
     
-    formatMessageContent(content) {
-        // Basic markdown-style formatting
-        return content
-            .replace(/\n/g, '<br>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/`(.*?)`/g, '<code>$1</code>');
-    }
+
     
-    showTypingIndicator() {
-        const typingIndicator = document.getElementById('typingIndicator');
-        const statusIndicator = document.querySelector('.status-indicator');
-        const chatStatus = document.getElementById('chatStatus');
-        
-        if (typingIndicator) {
-            typingIndicator.style.display = 'flex';
-        }
-        
-        if (statusIndicator) {
-            statusIndicator.classList.add('typing');
-        }
-        
-        if (chatStatus) {
-            chatStatus.textContent = 'Thinking...';
-        }
-    }
+
     
-    hideTypingIndicator() {
-        const typingIndicator = document.getElementById('typingIndicator');
-        const statusIndicator = document.querySelector('.status-indicator');
-        const chatStatus = document.getElementById('chatStatus');
-        
-        if (typingIndicator) {
-            typingIndicator.style.display = 'none';
-        }
-        
-        if (statusIndicator) {
-            statusIndicator.classList.remove('typing');
-        }
-        
-        if (chatStatus) {
-            chatStatus.textContent = 'Ready';
-        }
-    }
+
     
-    scrollToBottom(element) {
-        if (element) {
-            element.scrollTop = element.scrollHeight;
-        }
-    }
+
+    
+
+    
+
+    
+
+    
+
+    
+
 
     getTimeAgo(timestamp) {
         const now = new Date();
