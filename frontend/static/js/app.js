@@ -1597,6 +1597,7 @@ class ZavionApp {
 
         // Setup click handlers for hour items
         this.setupTimelineHourHandlers();
+        this.setupTimelinePropositionHandlers();
     }
 
     /**
@@ -1630,11 +1631,27 @@ class ZavionApp {
                         <strong>Individual Insights:</strong>
                         ${propositions.map(prop => {
                             const timeLabel = prop?.created_at ? this.formatLocalTime(prop.created_at) : 'Unknown time';
+                            const shortText = this.escapeHtml(prop.text);
+                            const confidence = prop.confidence || 0;
+                            const confidenceClass = confidence >= 80 ? 'confidence-high' : confidence >= 60 ? 'confidence-medium' : confidence >= 40 ? 'confidence-low' : 'confidence-none';
                             return `
-                                <div class="timeline-proposition">
-                                    <span class="timeline-proposition-time">${timeLabel}</span>
-                                    <div class="timeline-proposition-text">
-                                        <strong>#${prop.id}</strong> (Confidence: ${prop.confidence || 'N/A'}) - ${this.escapeHtml(prop.text)}
+                                <div class="timeline-proposition-card" onclick="event.stopPropagation(); window.zavionApp?.togglePropositionDetails(${prop.id})">
+                                    <div class="timeline-proposition-header">
+                                        <span class="timeline-proposition-time">${timeLabel}</span>
+                                        <span class="confidence-badge ${confidenceClass}">
+                                            <i class="fas fa-chart-line"></i>
+                                            ${prop.confidence || 'N/A'}% confidence
+                                        </span>
+                                    </div>
+                                    <div class="timeline-proposition-content" id="prop-${prop.id}">
+                                        <div class="proposition-id">#${prop.id}</div>
+                                        <div class="proposition-text">${shortText}</div>
+                                        <span class="click-hint">Click for reasoning</span>
+                                        <div class="proposition-full" style="display: none;">
+                                            <div class="proposition-reasoning">
+                                                <strong>Reasoning:</strong> ${this.escapeHtml(prop.reasoning || 'No reasoning provided')}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             `;
@@ -2059,6 +2076,162 @@ class ZavionApp {
                 details.style.display = 'block';
                 toggle.classList.remove('fa-chevron-down');
                 toggle.classList.add('fa-chevron-up');
+            }
+        }
+    }
+
+    /**
+     * Setup click handlers for timeline propositions
+     */
+    setupTimelinePropositionHandlers() {
+        // Add CSS for expanded state if not already present
+        if (!document.getElementById('timeline-proposition-styles')) {
+            const style = document.createElement('style');
+            style.id = 'timeline-proposition-styles';
+            style.textContent = `
+                .timeline-proposition-card {
+                    background: rgba(255, 255, 255, 0.7);
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 8px;
+                    padding: 10px;
+                    margin-bottom: 8px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+                }
+                .timeline-proposition-card:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    background: rgba(255, 255, 255, 0.8);
+                }
+                .timeline-proposition-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 6px;
+                }
+                .timeline-proposition-time {
+                    font-size: 0.75em;
+                    color: #666;
+                    font-weight: 500;
+                }
+                .proposition-id {
+                    background: #f3f4f6;
+                    color: #6b7280;
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    font-size: 0.7em;
+                    font-weight: 600;
+                    font-family: monospace;
+                    margin-bottom: 4px;
+                    display: inline-block;
+                }
+                .proposition-text {
+                    color: #374151;
+                    font-size: 0.85em;
+                    line-height: 1.4;
+                    margin-bottom: 4px;
+                    font-weight: 500;
+                }
+                .click-hint {
+                    font-size: 0.7em;
+                    color: #9ca3af;
+                    font-style: italic;
+                }
+                .proposition-full {
+                    margin-top: 8px;
+                    padding: 8px;
+                    background: rgba(0, 0, 0, 0.05);
+                    border-radius: 6px;
+                    border-left: 2px solid #8b5cf6;
+                }
+                .proposition-reasoning {
+                    color: #4b5563;
+                    line-height: 1.4;
+                    font-size: 0.8em;
+                }
+                .timeline-hour-item {
+                    display: block !important;
+                }
+                .timeline-hour-item .timeline-hour-left {
+                    position: sticky;
+                    top: 10px;
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(10px);
+                    z-index: 100;
+                    padding: 12px;
+                    border-radius: 12px;
+                    margin-bottom: 12px;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+                .timeline-hour-button {
+                    margin: 0 0 12px 0;
+                    width: 100%;
+                    max-width: 200px;
+                }
+                .timeline-hour-details {
+                    margin-top: 0 !important;
+                }
+                .timeline-propositions {
+                    padding: 0 !important;
+                    background: transparent !important;
+                    border: none !important;
+                }
+                .confidence-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    font-size: 0.7em;
+                    font-weight: 600;
+                    white-space: nowrap;
+                }
+                .confidence-badge.confidence-high {
+                    background: rgba(16, 185, 129, 0.1);
+                    color: #059669;
+                    border: 1px solid rgba(16, 185, 129, 0.2);
+                }
+                .confidence-badge.confidence-medium {
+                    background: rgba(245, 158, 11, 0.1);
+                    color: #d97706;
+                    border: 1px solid rgba(245, 158, 11, 0.2);
+                }
+                .confidence-badge.confidence-low {
+                    background: rgba(239, 68, 68, 0.1);
+                    color: #dc2626;
+                    border: 1px solid rgba(239, 68, 68, 0.2);
+                }
+                .confidence-badge.confidence-none {
+                    background: rgba(156, 163, 175, 0.1);
+                    color: #6b7280;
+                    border: 1px solid rgba(156, 163, 175, 0.2);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    /**
+     * Toggle proposition details visibility
+     */
+    togglePropositionDetails(propId) {
+        const propElement = document.getElementById(`prop-${propId}`);
+        if (propElement) {
+            const fullDetails = propElement.querySelector('.proposition-full');
+            const clickHint = propElement.querySelector('.click-hint');
+            
+            if (fullDetails.style.display === 'none') {
+                fullDetails.style.display = 'block';
+                clickHint.textContent = 'Click to hide reasoning';
+            } else {
+                fullDetails.style.display = 'none';
+                clickHint.textContent = 'Click for reasoning';
             }
         }
     }
