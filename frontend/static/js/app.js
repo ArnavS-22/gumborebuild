@@ -705,16 +705,23 @@ class ZavionApp {
      * Update scroll progress
      */
     /**
-     * Show toast notification
+     * Enhanced toast notification system with multiple toasts support
      */
-    showToast(message, type = 'info') {
-        const toast = document.getElementById('toast');
-        if (!toast) return;
-
-        // Clear any existing timeout
-        if (this.toastTimeout) {
-            clearTimeout(this.toastTimeout);
+    showToast(message, type = 'info', position = 'top-right', duration = 5000) {
+        // Create toast container if it doesn't exist
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
         }
+
+        // Create individual toast element
+        const toast = document.createElement('div');
+        const toastId = Date.now() + Math.random();
+        toast.id = `toast-${toastId}`;
+        toast.className = `toast ${type}`;
 
         // Get icon for toast type
         const icons = {
@@ -728,14 +735,47 @@ class ZavionApp {
         toast.innerHTML = `
             <i class="${icons[type] || icons.info}" aria-hidden="true"></i>
             <span>${message}</span>
+            <button class="toast-close" onclick="window.zavionApp.closeToast('${toastId}')">
+                <i class="fas fa-times"></i>
+            </button>
         `;
-        
-        toast.className = `toast ${type} show`;
 
-        // Auto hide after 6 seconds (longer for better readability)
-        this.toastTimeout = setTimeout(() => {
-            toast.classList.remove('show');
-        }, 6000);
+        // Add to container
+        container.appendChild(toast);
+
+        // Trigger animation
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+
+        // Auto hide after specified duration
+        const timeout = setTimeout(() => {
+            this.closeToast(toastId);
+        }, duration);
+
+        // Store timeout reference for manual cleanup
+        toast.dataset.timeout = timeout;
+    }
+
+    /**
+     * Close specific toast
+     */
+    closeToast(toastId) {
+        const toast = document.getElementById(`toast-${toastId}`);
+        if (!toast) return;
+
+        // Clear timeout if exists
+        if (toast.dataset.timeout) {
+            clearTimeout(toast.dataset.timeout);
+        }
+
+        // Animate out and remove
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
     }
 
     /**
@@ -1359,6 +1399,12 @@ class ZavionApp {
             });
         });
 
+        // Setup home page styles
+        this.setupHomePageStyles();
+        
+        // Setup dynamic home page content
+        this.setupHomePage();
+
         // Initially hide sidebar since home tab is active by default
         const sidebar = document.querySelector('.tabs-navigation');
         if (sidebar) {
@@ -1624,7 +1670,7 @@ class ZavionApp {
                     <div class="timeline-hour-count">${count} insights</div>
                 </div>
                 <button class="timeline-hour-button" data-hour="${hour}">
-                    Click Insights
+                    See Insights
                 </button>
                 <div class="timeline-hour-details" id="timeline-hour-${hour}">
                     <div class="timeline-propositions">
@@ -1704,7 +1750,7 @@ class ZavionApp {
         if (isVisible) {
             detailsElement.classList.remove('show');
             if (button) {
-                button.textContent = 'Click Insights';
+                button.textContent = 'See Insights';
             }
         } else {
             detailsElement.classList.add('show');
@@ -1724,9 +1770,9 @@ class ZavionApp {
 
         contentContainer.innerHTML = `
             <div class="empty-state">
-                <i class="fas fa-clock" aria-hidden="true"></i>
-                <h3>No timeline data</h3>
-                <p>No insights found for the selected date. Try a different date or check if you have any observations recorded.</p>
+                <i class="fas fa-calendar-times" aria-hidden="true"></i>
+                <h3>No insights found</h3>
+                <p>No timeline data available for the selected date. Try selecting a different date or adjusting your filters.</p>
             </div>
         `;
     }
@@ -2081,6 +2127,253 @@ class ZavionApp {
     }
 
     /**
+     * Setup home page styles
+     */
+    setupHomePageStyles() {
+        // Add CSS for home page if not already present
+        if (!document.getElementById('home-page-styles')) {
+            const style = document.createElement('style');
+            style.id = 'home-page-styles';
+            style.textContent = `
+                .home-actions-container {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 70vh;
+                    width: 100%;
+                    padding: 2rem;
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                }
+                .home-welcome-header {
+                    text-align: center;
+                    margin-bottom: 3rem;
+                }
+                .home-welcome-header h1 {
+                    font-size: 2rem;
+                    font-weight: 600;
+                    color: var(--text-primary, #1f2937);
+                    margin: 0;
+                    line-height: 1.2;
+                }
+                .home-actions-grid {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 2rem;
+                    flex-wrap: wrap;
+                }
+                .home-action-button {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 1rem;
+                    padding: 2rem 1.5rem;
+                    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 16px;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+                    min-height: 140px;
+                }
+                .home-action-button:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+                    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+                }
+                .home-action-button i {
+                    font-size: 2rem;
+                    margin-bottom: 0.5rem;
+                }
+                .home-action-button .button-title {
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    text-align: center;
+                    margin-bottom: 0.25rem;
+                }
+                .home-action-button .button-subtitle {
+                    font-size: 0.85rem;
+                    font-weight: 400;
+                    text-align: center;
+                    opacity: 0.8;
+                    line-height: 1.2;
+                }
+                #home-panel {
+                    position: relative;
+                    height: 100vh;
+                }
+                .recent-suggestions-preview {
+                    margin: 1rem 0;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.4rem;
+                    max-width: 500px;
+                    width: 100%;
+                }
+                .recent-suggestion-card {
+                    background: rgba(255, 255, 255, 0.05);
+                    backdrop-filter: blur(5px);
+                    border: 1px solid rgba(139, 92, 246, 0.1);
+                    border-radius: 6px;
+                    padding: 0.5rem 0.75rem;
+                    font-size: 0.75rem;
+                    color: var(--text-muted, #6b7280);
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .recent-suggestion-card:hover {
+                    background: rgba(255, 255, 255, 0.08);
+                    border-color: rgba(139, 92, 246, 0.2);
+                }
+                .suggestion-text {
+                    margin-bottom: 0.2rem;
+                    line-height: 1.2;
+                    font-weight: 400;
+                }
+                .suggestion-meta {
+                    font-size: 0.65rem;
+                    opacity: 0.6;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .loading-suggestions, .stats-loading {
+                    text-align: center;
+                    font-size: 0.75rem;
+                    opacity: 0.5;
+                    color: var(--text-muted, #6b7280);
+                    font-style: italic;
+                }
+                .home-stats-bar {
+                    position: absolute;
+                    bottom: 2rem;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    font-size: 0.75rem;
+                    color: var(--text-muted, #6b7280);
+                    opacity: 0.8;
+                    text-align: center;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    /**
+     * Setup dynamic home page content
+     */
+    setupHomePage() {
+        this.updateGreeting();
+        this.loadRecentSuggestions();
+        this.loadHomeStats();
+    }
+
+    /**
+     * Update greeting based on time of day
+     */
+    updateGreeting() {
+        const greetingElement = document.getElementById('dynamic-greeting');
+        if (!greetingElement) return;
+
+        const now = new Date();
+        const hour = now.getHours();
+        let timeOfDay;
+
+        if (hour < 12) {
+            timeOfDay = 'morning';
+        } else if (hour < 17) {
+            timeOfDay = 'afternoon';
+        } else {
+            timeOfDay = 'evening';
+        }
+
+        greetingElement.textContent = `Good ${timeOfDay}, Arnav! Ready to learn about yourself?`;
+    }
+
+    /**
+     * Load recent suggestions for homepage preview
+     */
+    async loadRecentSuggestions() {
+        const previewContainer = document.getElementById('recent-suggestions-preview');
+        if (!previewContainer) return;
+
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/suggestions/history?limit=2`);
+            if (response.ok) {
+                const suggestions = await response.json();
+                
+                if (suggestions.length === 0) {
+                    previewContainer.innerHTML = `
+                        <div class="loading-suggestions">No recent suggestions yet. Enable suggestions to see them here!</div>
+                    `;
+                    return;
+                }
+
+                const suggestionsHTML = suggestions.map(suggestion => {
+                    const timeAgo = this.getTimeAgo(new Date(suggestion.created_at));
+                    const suggestionText = suggestion.title || suggestion.description || 'No suggestion text';
+                    return `
+                        <div class="recent-suggestion-card" onclick="window.zavionApp?.switchTab('suggestions')">
+                            <div class="suggestion-text">${this.escapeHtml(suggestionText.substring(0, 60))}${suggestionText.length > 60 ? '...' : ''}</div>
+                            <div class="suggestion-meta">
+                                <span>${timeAgo}</span>
+                                <span>${suggestion.category || 'General'}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                previewContainer.innerHTML = suggestionsHTML;
+            }
+        } catch (error) {
+            console.error('Error loading recent suggestions:', error);
+            previewContainer.innerHTML = `<div class="loading-suggestions">Unable to load recent suggestions</div>`;
+        }
+    }
+
+    /**
+     * Load stats for homepage stats bar
+     */
+    async loadHomeStats() {
+        const statsBar = document.getElementById('home-stats-bar');
+        if (!statsBar) return;
+
+        try {
+            // Get total count
+            const countResponse = await fetch(`${this.apiBaseUrl}/propositions/count`);
+            let totalInsights = 0;
+            if (countResponse.ok) {
+                const countData = await countResponse.json();
+                totalInsights = countData.total_propositions; // API returns total_propositions, not count
+            }
+
+            // Get recent insights to calculate "last active"
+            const recentResponse = await fetch(`${this.apiBaseUrl}/propositions?limit=1&sort_by=created_at`);
+            let lastActiveText = 'No activity yet';
+            if (recentResponse.ok) {
+                const recentData = await recentResponse.json(); // Direct array
+                if (recentData && recentData.length > 0) {
+                    const lastInsight = recentData[0];
+                    const lastActiveTime = this.getTimeAgo(new Date(lastInsight.created_at));
+                    lastActiveText = `Last active ${lastActiveTime}`;
+                }
+            }
+
+            statsBar.innerHTML = `${totalInsights} insights total • ${lastActiveText}`;
+        } catch (error) {
+            console.error('Error loading home stats:', error);
+            statsBar.innerHTML = 'Stats unavailable';
+        }
+    }
+
+    /**
      * Setup click handlers for timeline propositions
      */
     setupTimelinePropositionHandlers() {
@@ -2170,9 +2463,62 @@ class ZavionApp {
                     justify-content: space-between;
                 }
                 .timeline-hour-button {
-                    margin: 0 0 12px 0;
+                    margin: 0 0 16px 0;
                     width: 100%;
-                    max-width: 200px;
+                    padding: 12px 24px;
+                    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 0.9em;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+                    text-align: center;
+                    display: block;
+                }
+                .timeline-hour-button:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+                    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+                }
+
+                /* Timeline and Narrative Timeline empty state styling */
+                .timeline-content .empty-state,
+                .narrative-timeline-content .empty-state {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    text-align: center;
+                    padding: var(--spacing-xxl, 3rem);
+                    color: var(--text-secondary, #6b7280);
+                    min-height: 300px;
+                }
+
+                .timeline-content .empty-state i,
+                .narrative-timeline-content .empty-state i {
+                    font-size: 4rem;
+                    color: var(--brand-cyan, #06b6d4);
+                    margin-bottom: var(--spacing-lg, 1.5rem);
+                    opacity: 0.7;
+                }
+
+                .timeline-content .empty-state h3,
+                .narrative-timeline-content .empty-state h3 {
+                    font-size: var(--font-size-xl, 1.25rem);
+                    font-weight: 600;
+                    color: var(--text-primary, #1f2937);
+                    margin-bottom: var(--spacing-sm, 0.5rem);
+                }
+
+                .timeline-content .empty-state p,
+                .narrative-timeline-content .empty-state p {
+                    font-size: var(--font-size-base, 1rem);
+                    line-height: 1.5;
+                    max-width: 400px;
+                    color: var(--text-muted, #9ca3af);
                 }
                 .timeline-hour-details {
                     margin-top: 0 !important;
@@ -2212,6 +2558,7 @@ class ZavionApp {
                     color: #6b7280;
                     border: 1px solid rgba(156, 163, 175, 0.2);
                 }
+
             `;
             document.head.appendChild(style);
         }
@@ -2311,8 +2658,8 @@ class ZavionApp {
         contentContainer.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-list-alt" aria-hidden="true"></i>
-                <h3>No narrative timeline data</h3>
-                <p>No raw observations found for the selected date. Try a different date or check if you have any observations recorded.</p>
+                <h3>No observations found</h3>
+                <p>No raw observations available for the selected date. Try selecting a different date or check if tracking was active.</p>
             </div>
         `;
     }
@@ -2326,7 +2673,10 @@ class ZavionApp {
         const content = document.getElementById('suggestionsContent');
         if (!content) return;
         
-        this.updateSuggestionUI('connecting');
+        // Load all existing suggestions organized by time
+        this.loadAllSuggestions();
+        
+        // Initialize polling for new suggestions
         this.initializeSuggestionPolling();
     }
 
@@ -2610,86 +2960,185 @@ class ZavionApp {
     }
     
     displaySuggestionBatch(batch) {
-        const content = document.getElementById('suggestionsContent');
-        if (!content || !batch.suggestions || batch.suggestions.length === 0) return;
+        // When new batch arrives, add to existing suggestions and refresh display
+        if (batch && batch.suggestions && batch.suggestions.length > 0) {
+            // Add timestamp to new suggestions if not present
+            batch.suggestions.forEach(suggestion => {
+                if (!suggestion.created_at) {
+                    suggestion.created_at = batch.generated_at || new Date().toISOString();
+                }
+            });
+            
+            this.showToast('New suggestions received!', 'success');
+        }
         
-        content.innerHTML = `
-            <div class="suggestions-header">
-                <div class="suggestions-summary">
-                    <h3>🎯 New Intelligent Suggestions</h3>
-                    <div class="meta-info">
-                        Triggered by proposition ${batch.trigger_proposition_id} • Generated ${this.formatTimestamp(batch.generated_at)}
-                        <div class="processing-time">⚡ ${batch.processing_time_seconds.toFixed(2)}s processing time</div>
+        // Always reload the full suggestions view organized by time
+        this.loadAllSuggestions();
+    }
+
+    /**
+     * Load and display all suggestions organized by time periods
+     */
+    async loadAllSuggestions() {
+        const content = document.getElementById('suggestionsContent');
+        if (!content) return;
+
+        try {
+            // Load all historical suggestions
+            const response = await fetch(`${this.apiBaseUrl}/suggestions/history?limit=100`);
+            if (!response.ok) {
+                throw new Error(`Failed to load suggestions: ${response.status}`);
+            }
+            
+            const allSuggestions = await response.json();
+            
+            if (!allSuggestions || allSuggestions.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-lightbulb"></i>
+                        <h3>No suggestions available</h3>
+                        <p>Suggestions will appear here automatically based on your recent activity</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group suggestions by time periods
+            const timeGroups = this.groupSuggestionsByTime(allSuggestions);
+            
+            // Display organized suggestions
+            content.innerHTML = this.renderTimeGroupedSuggestions(timeGroups);
+            
+            // Store current suggestions for copy functionality
+            this.currentSuggestions = allSuggestions;
+            
+        } catch (error) {
+            console.error('Error loading suggestions:', error);
+            content.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Unable to load suggestions</h3>
+                    <p>Please check your connection and try again</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Group suggestions by time periods (Today, Yesterday, This Week, etc.)
+     */
+    groupSuggestionsByTime(suggestions) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        const thisWeekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000));
+        const lastWeekStart = new Date(thisWeekStart.getTime() - (7 * 24 * 60 * 60 * 1000));
+
+        const groups = {
+            today: [],
+            yesterday: [],
+            thisWeek: [],
+            lastWeek: [],
+            older: []
+        };
+
+        suggestions.forEach(suggestion => {
+            const suggestionDate = new Date(suggestion.created_at);
+            const suggestionDay = new Date(suggestionDate.getFullYear(), suggestionDate.getMonth(), suggestionDate.getDate());
+
+            if (suggestionDay.getTime() === today.getTime()) {
+                groups.today.push(suggestion);
+            } else if (suggestionDay.getTime() === yesterday.getTime()) {
+                groups.yesterday.push(suggestion);
+            } else if (suggestionDate >= thisWeekStart) {
+                groups.thisWeek.push(suggestion);
+            } else if (suggestionDate >= lastWeekStart) {
+                groups.lastWeek.push(suggestion);
+            } else {
+                groups.older.push(suggestion);
+            }
+        });
+
+        // Sort suggestions within each group by time (newest first)
+        Object.keys(groups).forEach(key => {
+            groups[key].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        });
+
+        return groups;
+    }
+
+    /**
+     * Render time-grouped suggestions with clean section headers
+     */
+    renderTimeGroupedSuggestions(timeGroups) {
+        const sections = [];
+
+        const sectionConfigs = [
+            { key: 'today', title: 'Today', icon: 'fas fa-sun' },
+            { key: 'yesterday', title: 'Yesterday', icon: 'fas fa-moon' },
+            { key: 'thisWeek', title: 'This Week', icon: 'fas fa-calendar-week' },
+            { key: 'lastWeek', title: 'Last Week', icon: 'fas fa-calendar' },
+            { key: 'older', title: 'Older', icon: 'fas fa-archive' }
+        ];
+
+        sectionConfigs.forEach(config => {
+            const suggestions = timeGroups[config.key];
+            if (suggestions && suggestions.length > 0) {
+                sections.push(`
+                    <div class="suggestions-time-section">
+                        <div class="suggestions-time-header">
+                            <i class="${config.icon}"></i>
+                            ${config.title}
+                            <span class="suggestions-count">${suggestions.length}</span>
+                        </div>
+                        <div class="suggestions-list">
+                            ${suggestions.map((suggestion, index) => this.renderSuggestionCard(suggestion, index)).join('')}
+                        </div>
+                    </div>
+                `);
+            }
+        });
+
+        return sections.join('');
+    }
+
+    /**
+     * Render individual suggestion card
+     */
+    renderSuggestionCard(suggestion, index) {
+        return `
+            <div class="suggestion-card gumbo-suggestion" data-suggestion-index="${index}">
+                <div class="suggestion-header">
+                    <h4 class="suggestion-title">${this.escapeHtml(suggestion.title)}</h4>
+                    <div class="suggestion-meta">
+                        <span class="category-badge" data-category="${suggestion.category}">
+                            ${this.escapeHtml(suggestion.category || 'General')}
+                        </span>
+                        <span class="time-badge">
+                            ${this.getTimeAgo(new Date(suggestion.created_at))}
+                        </span>
                     </div>
                 </div>
-            </div>
-            <div class="suggestions-list">
-                ${batch.suggestions.map((suggestion, index) => `
-                    <div class="suggestion-card gumbo-suggestion" data-suggestion-index="${index}">
-                        <div class="suggestion-header">
-                            <h4 class="suggestion-title">${this.escapeHtml(suggestion.title)}</h4>
-                            <div class="suggestion-meta">
-                                <span class="utility-badge" data-utility="${suggestion.expected_utility}">
-                                    ${suggestion.expected_utility ? suggestion.expected_utility.toFixed(2) : 'N/A'} utility
-                                </span>
-                                <span class="category-badge" data-category="${suggestion.category}">
-                                    ${this.escapeHtml(suggestion.category)}
-                                </span>
-                                <span class="probability-badge">
-                                    ${(suggestion.probability_useful * 100).toFixed(0)}% useful
-                                </span>
+                <div class="suggestion-description">
+                    ${this.escapeHtml(suggestion.description)}
+                </div>
+                ${suggestion.rationale ? `
+                    <div class="suggestion-reasoning">
+                        <details>
+                            <summary>Click to see reasoning</summary>
+                            <div class="reasoning-content">
+                                ${this.escapeHtml(suggestion.rationale)}
                             </div>
-                        </div>
-                        <div class="suggestion-description">
-                            ${this.escapeHtml(suggestion.description)}
-                        </div>
-                        <div class="suggestion-reasoning">
-                            <details>
-                                <summary>🧠 AI Reasoning</summary>
-                                <div class="reasoning-content">
-                                    ${this.escapeHtml(suggestion.rationale)}
-                                </div>
-                            </details>
-                        </div>
-                        ${suggestion.utility_scores ? `
-                            <div class="utility-scores">
-                                <details>
-                                    <summary>📊 Utility Analysis</summary>
-                                    <div class="scores-grid">
-                                        <div class="score-item">
-                                            <span class="score-label">Benefit:</span>
-                                            <span class="score-value">${suggestion.utility_scores.benefit}/10</span>
-                                        </div>
-                                        <div class="score-item">
-                                            <span class="score-label">False Positive Cost:</span>
-                                            <span class="score-value">${suggestion.utility_scores.false_positive_cost}/10</span>
-                                        </div>
-                                        <div class="score-item">
-                                            <span class="score-label">False Negative Cost:</span>
-                                            <span class="score-value">${suggestion.utility_scores.false_negative_cost}/10</span>
-                                        </div>
-                                        <div class="score-item">
-                                            <span class="score-label">Decay:</span>
-                                            <span class="score-value">${suggestion.utility_scores.decay}/10</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </details>
-                        </div>
-                        ` : ''}
-                        <div class="suggestion-actions">
-                            <button class="action-btn" onclick="window.zavionApp.copySuggestion(${index})">
-                                📋 Copy
-                            </button>
-
-                        </div>
+                        </details>
                     </div>
-                `).join('')}
+                ` : ''}
+                <div class="suggestion-actions">
+                    <button class="action-btn" onclick="window.zavionApp.copySuggestion(${index})">
+                         Copy
+                    </button>
+                </div>
             </div>
         `;
-        
-        this.currentSuggestions = batch.suggestions;
-        this.showToast('New suggestions received!', 'success');
     }
 
     // Helper methods for suggestion actions
@@ -2856,6 +3305,26 @@ class ZavionApp {
 
     async loadDashboardData() {
         try {
+            // Update insights count
+            const countResponse = await fetch(`${this.apiBaseUrl}/propositions/count`);
+            if (countResponse.ok) {
+                const countData = await countResponse.json();
+                this.updateDashboardInsightsCount(countData.count);
+            }
+
+            // Load recent insights preview
+            const recentResponse = await fetch(`${this.apiBaseUrl}/propositions?limit=3&sort_by=created_at`);
+            if (recentResponse.ok) {
+                const recentData = await recentResponse.json();
+                this.updateDashboardRecentInsights(recentData.propositions || []);
+            }
+
+            // Update last activity time
+            if (recentData && recentData.propositions && recentData.propositions.length > 0) {
+                const lastInsight = recentData.propositions[0];
+                this.updateDashboardLastActivity(lastInsight.created_at);
+            }
+
             // Check tracking status
             if (window.electronAPI && window.electronAPI.getCliStatus) {
                 const status = await window.electronAPI.getCliStatus();
@@ -2877,7 +3346,97 @@ class ZavionApp {
             console.error('Error loading dashboard data:', error);
             this.updateTrackingStatus('Error');
             this.updateDataStatus('Error loading data');
+            this.updateDashboardError();
         }
+    }
+
+    updateDashboardInsightsCount(count) {
+        const countElement = document.getElementById('total-insights');
+        if (countElement) {
+            countElement.textContent = count;
+        }
+    }
+
+    updateDashboardLastActivity(timestamp) {
+        const activityElement = document.getElementById('last-activity');
+        if (activityElement && timestamp) {
+            const date = new Date(timestamp);
+            const timeAgo = this.getTimeAgo(date);
+            activityElement.textContent = timeAgo;
+        }
+    }
+
+    updateDashboardRecentInsights(insights) {
+        const previewContainer = document.getElementById('recent-insights-preview');
+        if (!previewContainer) return;
+
+        if (insights.length === 0) {
+            previewContainer.innerHTML = `
+                <div class="timeline-proposition-card">
+                    <div class="proposition-text" style="text-align: center; color: var(--text-muted);">
+                        No insights generated yet. Start using the app to see insights here!
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        const insightsHTML = insights.slice(0, 3).map(insight => {
+            const confidence = insight.confidence || 0;
+            const confidenceClass = confidence >= 80 ? 'confidence-high' : confidence >= 60 ? 'confidence-medium' : confidence >= 40 ? 'confidence-low' : 'confidence-none';
+            const timeLabel = insight.created_at ? this.formatLocalTime(insight.created_at) : 'Unknown time';
+            
+            return `
+                <div class="timeline-proposition-card" onclick="window.zavionApp?.switchTab('insights')">
+                    <div class="timeline-proposition-header">
+                        <span class="timeline-proposition-time">${timeLabel}</span>
+                        <span class="confidence-badge ${confidenceClass}">
+                            <i class="fas fa-chart-line"></i>
+                            ${confidence}% confidence
+                        </span>
+                    </div>
+                    <div class="timeline-proposition-content">
+                        <div class="proposition-id">#${insight.id}</div>
+                        <div class="proposition-text">${this.escapeHtml(insight.text.substring(0, 120))}${insight.text.length > 120 ? '...' : ''}</div>
+                        <span class="click-hint">Click to view all insights</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        previewContainer.innerHTML = insightsHTML;
+    }
+
+    updateDashboardError() {
+        const countElement = document.getElementById('total-insights');
+        const activityElement = document.getElementById('last-activity');
+        const previewContainer = document.getElementById('recent-insights-preview');
+        
+        if (countElement) countElement.textContent = 'Error';
+        if (activityElement) activityElement.textContent = 'Error';
+        if (previewContainer) {
+            previewContainer.innerHTML = `
+                <div class="timeline-proposition-card">
+                    <div class="proposition-text" style="text-align: center; color: var(--error-color);">
+                        Error loading insights. Please check your connection.
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    getTimeAgo(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString();
     }
 
     async loadRecentActivity() {

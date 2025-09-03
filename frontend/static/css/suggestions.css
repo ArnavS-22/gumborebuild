@@ -1,212 +1,86 @@
 /* ================================================
-   SUGGESTIONS INTERFACE - LIGHT THEME LAYOUT
+   SUGGESTIONS INTERFACE - CONSISTENT WITH APP DESIGN
    ================================================ */
 
-/* Main Layout Container - Now integrates naturally with tab-panel */
-.suggestions-layout {
-    display: flex;
-    height: calc(100vh - 120px);
-    background: var(--bg-primary);
-    border-radius: 0;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-}
-
-/* Override tab-panel styles for suggestions */
-.tab-panel:has(.suggestions-layout) {
-    padding: 0;
-    background: var(--bg-primary);
-}
-
-/* Fallback for browsers that don't support :has() */
-#suggestions-panel {
-    padding: 0;
-    background: var(--bg-primary);
-}
-
-/* Left Sidebar */
-.suggestions-sidebar {
-    width: 280px;
-    background: var(--bg-secondary);
-    padding: 0;
-    border-right: 1px solid var(--border-color);
-    flex-shrink: 0;
-}
-
-.sidebar-section {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-light);
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.sidebar-section:hover {
-    background: var(--bg-hover);
-}
-
-.sidebar-section.active {
-    background: var(--bg-tertiary);
-    border-left: 3px solid var(--brand-primary);
-}
-
-.sidebar-section h3 {
-    color: var(--text-primary);
-    font-size: 1rem;
-    font-weight: 500;
-    margin: 0;
-    letter-spacing: 0.02em;
-}
-
-/* Main Content Area */
-.suggestions-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg-primary);
-    overflow: hidden;
-}
-
-/* Header Section */
-.suggestions-header {
-    padding: 2rem 2.5rem;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-}
-
-.suggestions-header h1 {
-    color: var(--text-primary);
-    font-size: 2rem;
-    font-weight: 600;
-    margin: 0;
-}
-
-.suggestions-controls {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.suggestions-select {
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    color: var(--text-primary);
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    min-width: 140px;
-    cursor: pointer;
-    transition: var(--transition-base);
-}
-
-.suggestions-select:focus {
-    outline: none;
-    border-color: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.btn-generate {
-    background: var(--brand-gradient);
-    border: none;
-    border-radius: 8px;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    box-shadow: var(--shadow-sm);
-}
-
-.btn-generate:hover {
-    background: var(--brand-gradient-hover);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-}
-
-/* Content Area */
+/* Content Area - follows standard app pattern */
 .suggestions-content {
-    flex: 1;
-    padding: 2rem 2.5rem;
+    padding: 0;
     overflow-y: auto;
-    background: var(--bg-primary);
+    max-height: calc(100vh - 200px);
 }
 
-/* Suggestion Cards */
+/* Suggestion Cards Grid */
 .suggestions-grid {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    max-width: 800px;
+    gap: var(--spacing-lg);
+    padding: 0;
 }
 
+/* Individual Suggestion Cards - matches app's insight-card pattern */
 .suggestion-card {
-    background: white;
+    background: var(--bg-glass);
+    backdrop-filter: var(--backdrop-blur);
+    border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 2rem;
-    transition: all 0.2s ease;
-    position: relative;
+    padding: var(--spacing-xl);
+    transition: var(--transition-base);
     box-shadow: var(--shadow-sm);
 }
 
 .suggestion-card:hover {
-    border-color: var(--brand-primary);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-glass), 0 8px 25px rgba(0, 0, 0, 0.1);
+    border-color: var(--brand-primary);
 }
 
-/* Card Content */
+/* Card Content - using app's typography system */
 .suggestion-title {
     color: var(--text-primary);
-    font-size: 1.25rem;
+    font-size: var(--font-size-xl);
     font-weight: 600;
-    margin: 0 0 1rem 0;
+    margin: 0 0 var(--spacing-md) 0;
     line-height: 1.4;
 }
 
 .suggestion-description {
     color: var(--text-secondary);
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     line-height: 1.6;
-    margin-bottom: 2rem;
+    margin-bottom: var(--spacing-lg);
 }
 
 
 
-/* Empty State */
+/* Empty State - matches app pattern */
 .suggestions-content .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 300px;
     text-align: center;
-    color: var(--text-muted);
+    padding: var(--spacing-2xl);
+    color: var(--text-secondary);
+    min-height: 300px;
 }
 
 .suggestions-content .empty-state i {
     font-size: 4rem;
-    margin-bottom: 1.5rem;
-    color: var(--text-muted);
+    color: var(--brand-primary);
+    margin-bottom: var(--spacing-lg);
+    opacity: 0.7;
 }
 
 .suggestions-content .empty-state h3 {
-    color: var(--text-secondary);
-    font-size: 1.5rem;
+    color: var(--text-primary);
+    font-size: var(--font-size-xl);
     font-weight: 600;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-sm);
 }
 
 .suggestions-content .empty-state p {
     color: var(--text-muted);
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     line-height: 1.5;
     max-width: 400px;
 }
@@ -224,93 +98,217 @@
     color: var(--text-secondary);
 }
 
-/* Time Section Headers */
+/* Dynamic Suggestions Header (created by JavaScript) */
+.suggestions-content .suggestions-header {
+    background: var(--bg-glass);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    backdrop-filter: var(--backdrop-blur);
+}
+
+.suggestions-content .suggestions-summary h3 {
+    color: var(--text-primary);
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.suggestions-content .meta-info {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+}
+
+.suggestions-content .processing-time {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    margin-top: var(--spacing-xs);
+}
+
+/* Suggestions List Container */
+.suggestions-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+/* Suggestion Card Header (inside cards) */
+.suggestion-card .suggestion-header {
+    margin-bottom: var(--spacing-md);
+}
+
+.suggestion-card .suggestion-meta {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+/* Suggestion Badges - simplified and cleaner */
+.category-badge,
+.time-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+}
+
+.category-badge {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
+}
+
+.time-badge {
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-style: italic;
+}
+
+/* Suggestion Details Sections */
+.suggestion-reasoning,
+.utility-scores {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-light);
+}
+
+/* Suggestion Actions Spacing */
+.suggestion-actions {
+    margin-top: var(--spacing-lg);
+}
+
+.suggestion-reasoning details,
+.utility-scores details {
+    cursor: pointer;
+}
+
+.suggestion-reasoning summary,
+.utility-scores summary {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    padding: var(--spacing-xs) 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.suggestion-reasoning summary::-webkit-details-marker,
+.utility-scores summary::-webkit-details-marker {
+    display: none;
+}
+
+.reasoning-content {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    padding: var(--spacing-sm) 0;
+    font-style: italic;
+}
+
+.scores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+}
+
+.score-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-xs);
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+}
+
+.score-label {
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+}
+
+.score-value {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+/* Time Section Headers - clean and organized */
 .suggestions-time-section {
-    margin-bottom: 2.5rem;
+    margin-bottom: var(--spacing-2xl);
 }
 
 .suggestions-time-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
     color: var(--text-primary);
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     font-weight: 600;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--border-color);
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid var(--border-light);
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary);
+    z-index: 10;
 }
 
-/* Responsive Design */
-@media (max-width: 1024px) {
-    .suggestions-layout {
-        flex-direction: column;
-        height: auto;
-    }
-    
-    .suggestions-sidebar {
-        width: 100%;
-        display: flex;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-    }
-    
-    .sidebar-section {
-        flex: 1;
-        text-align: center;
-        border-bottom: none;
-        border-right: 1px solid var(--border-light);
-    }
-    
-    .sidebar-section:last-child {
-        border-right: none;
-    }
-    
-    .sidebar-section.active {
-        border-left: none;
-        border-bottom: 3px solid var(--brand-primary);
-    }
-    
-    .suggestions-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-    
-    .suggestions-controls {
-        width: 100%;
-        justify-content: space-between;
-    }
+.suggestions-time-header i {
+    color: var(--brand-primary);
+    font-size: var(--font-size-lg);
 }
 
+.suggestions-count {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    margin-left: auto;
+}
+
+/* Responsive Design - optimized for time-organized layout */
 @media (max-width: 768px) {
-    .suggestions-header {
-        padding: 1.5rem;
+    .suggestions-content {
+        max-height: calc(100vh - 150px);
     }
     
-    .suggestions-content {
-        padding: 1.5rem;
+    .suggestions-time-header {
+        font-size: var(--font-size-lg);
+        padding: var(--spacing-sm) 0;
+        position: static; /* Remove sticky on mobile for better scrolling */
+    }
+    
+    .suggestions-time-header i {
+        font-size: var(--font-size-base);
     }
     
     .suggestion-card {
-        padding: 1.5rem;
+        padding: var(--spacing-lg);
     }
     
-    .suggestions-header h1 {
-        font-size: 1.75rem;
+    .suggestion-title {
+        font-size: var(--font-size-lg);
     }
     
-    .suggestions-controls {
+    .suggestion-meta {
         flex-direction: column;
-        width: 100%;
-        gap: 0.75rem;
-    }
-    
-    .suggestions-select,
-    .btn-generate {
-        width: 100%;
-        justify-content: center;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
     }
 }
 
-/* Scrollbar Styling for Light Theme */
+/* Scrollbar Styling - uses app standards */
 .suggestions-content::-webkit-scrollbar {
     width: 8px;
 }
@@ -328,59 +326,12 @@
     background: var(--text-muted);
 }
 
-/* Animation for card appearance */
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
+/* Standard app animations - no custom animations needed */
 .suggestion-card {
-    animation: slideInUp 0.3s ease-out;
+    /* Uses standard transition from var(--transition-base) */
 }
 
-/* Focus states for accessibility */
-.suggestions-select:focus,
-.btn-generate:focus {
-    outline: 2px solid var(--brand-primary);
-    outline-offset: 2px;
-}
-
-.sidebar-section:focus {
-    outline: 2px solid var(--brand-primary);
-    outline-offset: -2px;
-}
-
-/* Dark Mode Overrides */
-[data-theme="dark"] .suggestions-layout {
-    background: var(--bg-primary);
-}
-
-[data-theme="dark"] .suggestions-sidebar {
-    background: var(--bg-secondary);
-    border-right-color: var(--border-color);
-}
-
-[data-theme="dark"] .sidebar-section.active {
-    background: var(--bg-tertiary);
-}
-
-[data-theme="dark"] .suggestions-header {
-    background: var(--bg-secondary);
-    border-bottom-color: var(--border-color);
-}
-
-[data-theme="dark"] .suggestions-select {
-    background: var(--bg-tertiary);
-    border-color: var(--border-color);
-    color: var(--text-primary);
-}
-
+/* Dark Mode Support - inherits from CSS variables */
 [data-theme="dark"] .suggestion-card {
     background: var(--bg-card);
     border-color: var(--border-color);

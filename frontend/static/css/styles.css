@@ -7,10 +7,10 @@
   --bg-hover: rgba(255, 255, 255, 0.9);
   --bg-glass: rgba(255, 255, 255, 0.7);
   
-  /* Text Colors - Soft and Professional */
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
+  /* Text Colors - Bold and Professional */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
   --text-white: #ffffff;
   --text-dark: #0f172a;
   
@@ -102,11 +102,11 @@
   --bg-hover: rgba(30, 41, 59, 0.9);
   --bg-glass: rgba(30, 41, 59, 0.7);
   
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
+  --text-primary: #ffffff;
+  --text-secondary: #e2e8f0;
+  --text-muted: #cbd5e1;
   --text-white: #ffffff;
-  --text-dark: #f1f5f9;
+  --text-dark: #ffffff;
   
   --border-color: rgba(148, 163, 184, 0.2);
   --border-light: rgba(148, 163, 184, 0.1);
@@ -454,40 +454,103 @@ body {
     display: block;
 }
 
-/* Card header styling */
+/* Card header styling - clean, professional typography */
 .card-header {
     width: 100%;
     max-width: none;
-    margin: 0 0 var(--spacing-xl) 0;
-    padding: var(--spacing-xl) 0;
+    margin: 0 0 var(--spacing-2xl) 0;
+    padding: var(--spacing-lg) 0 0 0;
     text-align: left;
-    border-bottom: 1px solid var(--border-light);
+    background: none;
+    border: none;
 }
 
 .card-header h2 {
     display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    font-size: var(--font-size-2xl);
-    font-weight: 600;
-    color: var(--text-primary);
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--text-dark);
     margin-bottom: var(--spacing-sm);
+    letter-spacing: -0.025em;
+}
+
+.card-header h2 i {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.15) 100%);
+    color: var(--brand-primary);
+    font-size: var(--font-size-xl);
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.card-header .title-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.card-header .title-text {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+    letter-spacing: -0.025em;
+}
+
+.card-header .title-subtitle {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0;
+}
+
+/* Responsive design for card headers */
+@media (max-width: 768px) {
+    .card-header h2 {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+    }
+    
+    .card-header h2 i {
+        align-self: flex-start;
+        margin-top: 0;
+        padding: var(--spacing-md);
+        font-size: var(--font-size-lg);
+    }
+    
+    .card-header .title-text {
+        font-size: var(--font-size-2xl);
+    }
 }
 
 .card-header p {
-    color: var(--text-secondary);
+    color: #6b7280;
     font-size: var(--font-size-base);
+    line-height: 1.5;
+    font-weight: 400;
+    margin-bottom: var(--spacing-2xl);
 }
 
-/* Header actions */
+/* Header actions - clean, professional layout */
 .header-actions {
     display: flex;
     align-items: center;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-xl);
     justify-content: flex-start;
-    margin-top: var(--spacing-lg);
+    margin-top: var(--spacing-sm);
     width: 100%;
     flex-wrap: wrap;
+    padding: var(--spacing-lg) 0;
+    border-top: 1px solid var(--border-light);
 }
 
 .filter-group {
@@ -499,8 +562,9 @@ body {
 }
 
 .filter-group label {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
     font-weight: 500;
-    color: var(--text-secondary);
     white-space: nowrap;
 }
 
@@ -1403,30 +1467,40 @@ button:focus {
   gap: var(--spacing-sm);
 }
 
-/* Toast Notifications */
-.toast {
+/* Enhanced Toast Notifications - Compact */
+.toast-container {
   position: fixed;
-  top: var(--spacing-xl);
-  right: var(--spacing-xl);
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  max-width: 320px;
+  pointer-events: none;
+}
+
+.toast {
   background-color: var(--bg-card);
   color: var(--text-primary);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-xl);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
   border: 1px solid var(--border-color);
-  max-width: 450px;
-  min-width: 300px;
-  z-index: 10000;
-  transform: translateX(calc(100% + var(--spacing-xl)));
+  min-width: 250px;
+  max-width: 320px;
+  transform: translateX(calc(100% + var(--spacing-lg)));
   opacity: 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 500;
-  font-size: 0.95rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  line-height: 1.4;
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
+  pointer-events: auto;
+  position: relative;
 }
 
 .toast.show {
@@ -1435,8 +1509,30 @@ button:focus {
 }
 
 .toast i {
-  font-size: 1.2rem;
+  font-size: 1rem;
   flex-shrink: 0;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--border-radius);
+  margin-left: auto;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 0.75rem;
+}
+
+.toast-close:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .toast.success {
@@ -2012,35 +2108,148 @@ textarea:focus-visible {
     color: #9ca3af;
 }
 
-/* Toast Notifications */
-.toast {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 20px;
-    border-radius: 10px;
-    color: white;
-    font-weight: 600;
-    z-index: 1000;
-    transform: translateX(400px);
-    transition: transform 0.3s ease;
-    max-width: 400px;
+/* Duplicate toast styles removed - using the enhanced version above */
+
+/* ========================================
+   UNIVERSAL SHINY BUTTON EFFECTS
+======================================== */
+
+/* Shiny effect for ALL buttons */
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-generate,
+.tab-button,
+.home-action-button,
+.timeline-hour-button,
+.retry-btn,
+.action-btn,
+button:not(.tab-button):not(.no-shine) {
+    position: relative;
+    overflow: hidden;
+    background-clip: padding-box;
 }
 
-.toast.show {
-    transform: translateX(0);
+/* Shiny sweep animation */
+.btn-primary::before,
+.btn-secondary::before,
+.btn-danger::before,
+.btn-generate::before,
+.tab-button::before,
+.home-action-button::before,
+.timeline-hour-button::before,
+.retry-btn::before,
+.action-btn::before,
+button:not(.tab-button):not(.no-shine)::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    transition: left 0.5s ease;
+    z-index: 1;
+    pointer-events: none;
 }
 
-.toast.success {
-    background: #10b981;
+/* Trigger shine on hover */
+.btn-primary:hover::before,
+.btn-secondary:hover::before,
+.btn-danger:hover::before,
+.btn-generate:hover::before,
+.tab-button:hover::before,
+.home-action-button:hover::before,
+.timeline-hour-button:hover::before,
+.retry-btn:hover::before,
+.action-btn:hover::before,
+button:not(.tab-button):not(.no-shine):hover::before {
+    left: 100%;
 }
 
-.toast.error {
-    background: #ef4444;
+/* Enhanced continuous shimmer for primary buttons */
+.btn-primary::after,
+.home-action-button::after,
+.btn-generate::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    animation: shimmer 3s infinite;
+    z-index: 1;
+    pointer-events: none;
 }
 
-.toast.info {
-    background: #3b82f6;
+@keyframes shimmer {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: -100%; }
+}
+
+/* Pause shimmer on hover to show manual shine */
+.btn-primary:hover::after,
+.home-action-button:hover::after,
+.btn-generate:hover::after {
+    animation-play-state: paused;
+}
+
+/* Enhanced button text positioning */
+.btn-primary span,
+.btn-secondary span,
+.btn-danger span,
+.btn-generate span,
+.tab-button span,
+.home-action-button span,
+.timeline-hour-button span,
+button:not(.tab-button):not(.no-shine) span {
+    position: relative;
+    z-index: 2;
+}
+
+/* Enhanced button icon positioning */
+.btn-primary i,
+.btn-secondary i,
+.btn-danger i,
+.btn-generate i,
+.tab-button i,
+.home-action-button i,
+.timeline-hour-button i,
+button:not(.tab-button):not(.no-shine) i {
+    position: relative;
+    z-index: 2;
+}
+
+/* Home Action Button - Blue transparency hover like toast notifications */
+.home-action-button:hover {
+    background-color: rgba(var(--brand-cyan-rgb), 0.1) !important;
+    border-color: var(--brand-cyan);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Subtle glow effect on focus/active */
+.btn-primary:focus,
+.btn-primary:active,
+.home-action-button:focus,
+.home-action-button:active,
+.btn-generate:focus,
+.btn-generate:active {
+    box-shadow: 
+        0 0 20px rgba(var(--brand-primary-rgb, 59, 130, 246), 0.5),
+        var(--shadow-lg);
 }
 
 /* ========================================
@@ -2162,35 +2371,12 @@ textarea:focus-visible {
 
 /* Panel Cards - Removed as requested by user */
 
-.card-header {
-    padding: var(--spacing-xl);
-    border-bottom: 1px solid var(--border-light);
-    background: linear-gradient(135deg, var(--bg-glass) 0%, rgba(255, 255, 255, 0.1) 100%);
-    backdrop-filter: var(--backdrop-blur);
-}
-
-.card-header h2 {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    margin: 0 0 var(--spacing-sm) 0;
-    color: var(--text-primary);
-    font-size: var(--font-size-2xl);
-    font-weight: 600;
-}
-
-.card-header p {
-    margin: 0 0 var(--spacing-lg) 0;
-    color: var(--text-secondary);
-    font-size: var(--font-size-base);
-    line-height: 1.5;
-}
-
 .header-actions {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
     flex-wrap: wrap;
+    margin-top: 0;
 }
 
 
@@ -2225,8 +2411,8 @@ textarea:focus-visible {
 /* Panel Cards - Removed as requested by user */
 
 [data-theme="dark"] .card-header {
-    background: linear-gradient(135deg, var(--dark-mode-bg-color) 0%, rgba(255, 255, 255, 0.05) 100%);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: none;
+    border: none;
 }
 
 
@@ -2259,15 +2445,17 @@ textarea:focus-visible {
 .filter-group {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
 }
 
 .filter-group label {
+    color: var(--text-primary);
     font-size: var(--font-size-sm);
     font-weight: 500;
-    color: var(--text-secondary);
     white-space: nowrap;
 }
+
+
 
 .filter-group select {
     padding: var(--spacing-sm) var(--spacing-md);
@@ -2517,6 +2705,43 @@ textarea:focus-visible {
     font-size: var(--font-size-base);
     line-height: 1.5;
     max-width: 400px;
+}
+
+/* Empty State for Timeline and Narrative Timeline */
+.timeline-content .empty-state,
+.narrative-timeline-content .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--spacing-xxl);
+    color: var(--text-secondary);
+    min-height: 300px;
+}
+
+.timeline-content .empty-state i,
+.narrative-timeline-content .empty-state i {
+    font-size: 4rem;
+    color: var(--brand-cyan);
+    margin-bottom: var(--spacing-lg);
+    opacity: 0.7;
+}
+
+.timeline-content .empty-state h3,
+.narrative-timeline-content .empty-state h3 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.timeline-content .empty-state p,
+.narrative-timeline-content .empty-state p {
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+    max-width: 400px;
+    color: var(--text-muted);
 }
 
 /* Header Actions Styling */

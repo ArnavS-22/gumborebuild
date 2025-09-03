@@ -64,15 +64,38 @@
         <section class="tabs-content">
             <!-- Home Tab -->
             <div class="tab-panel active" id="home-panel">
-                <div class="card-header">
-                    <h2>Welcome to GUM</h2>
-                    <p>Ready to explore your user behavior patterns and gain valuable insights? Click below to view your behavioral timeline.</p>
-                </div>
-                <div class="card-content">
-                    <button class="btn-primary" onclick="window.zavionApp?.switchTab('timeline')">
-                        <i class="fas fa-clock"></i>
-                        View Timeline
-                    </button>
+                <!-- Quick Actions -->
+                <div class="home-actions-container">
+                    <div class="home-welcome-header">
+                        <h1 id="dynamic-greeting">Good day, Arnav! Ready to learn about yourself?</h1>
+                    </div>
+                    
+                    <!-- Recent Suggestions Preview -->
+                    <div class="recent-suggestions-preview" id="recent-suggestions-preview">
+                        <div class="loading-suggestions">Loading recent suggestions...</div>
+                    </div>
+                    <div class="home-actions-grid">
+                        <button class="home-action-button" onclick="window.zavionApp?.switchTab('timeline')">
+                            <i class="fas fa-clock"></i>
+                            <span class="button-title">View Timeline</span>
+                            <span class="button-subtitle">See your day in review</span>
+                        </button>
+                        <button class="home-action-button" onclick="window.zavionApp?.switchTab('insights')">
+                            <i class="fas fa-lightbulb"></i>
+                            <span class="button-title">Browse Insights</span>
+                            <span class="button-subtitle">Discover trends and patterns</span>
+                        </button>
+                        <button class="home-action-button" onclick="window.zavionApp?.switchTab('narrative-timeline')">
+                            <i class="fas fa-list-alt"></i>
+                            <span class="button-title">Raw Activity</span>
+                            <span class="button-subtitle">Dive into detailed logs</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Subtle Stats Bar -->
+                    <div class="home-stats-bar" id="home-stats-bar">
+                        <span class="stats-loading">Loading stats...</span>
+                    </div>
                 </div>
             </div>
 
@@ -81,7 +104,10 @@
                 <div class="card-header">
                     <h2>
                         <i class="fas fa-lightbulb"></i>
-                        User Behaviour Insights
+                        <div class="title-content">
+                            <div class="title-text">User Behaviour Insights</div>
+                            <div class="title-subtitle">AI-POWERED ANALYSIS</div>
+                        </div>
                     </h2>
                     <p>Generated insights and propositions about user behavior patterns</p>
                     <div class="header-actions">
@@ -143,7 +169,10 @@
                 <div class="card-header">
                     <h2>
                         <i class="fas fa-clock"></i>
-                        Timeline View
+                        <div class="title-content">
+                            <div class="title-text">Timeline View</div>
+                            <div class="title-subtitle">HOURLY INSIGHTS</div>
+                        </div>
                     </h2>
                     <p>View your insights organized by time - see what you did each hour</p>
                     <div class="header-actions">
@@ -171,8 +200,8 @@
                 <div class="timeline-section">
                     <div class="timeline-content" id="timelineContent">
                         <div class="empty-state">
-                            <i class="fas fa-clock" aria-hidden="true"></i>
-                            <h3>No timeline data</h3>
+                            <i class="fas fa-calendar-times" aria-hidden="true"></i>
+                            <h3>No insights found</h3>
                             <p>Select a date and click "Load Timeline" to view your hourly insights</p>
                         </div>
                     </div>
@@ -184,7 +213,10 @@
                 <div class="card-header">
                     <h2>
                         <i class="fas fa-list-alt"></i>
-                        Narrative Timeline
+                        <div class="title-content">
+                            <div class="title-text">Narrative Timeline</div>
+                            <div class="title-subtitle">RAW ACTIVITY DATA</div>
+                        </div>
                     </h2>
                     <p>View your raw activities and observations organized by time - see what you actually did each hour</p>
                     <div class="header-actions">
@@ -203,7 +235,7 @@
                     <div class="narrative-timeline-content" id="narrativeTimelineContent">
                         <div class="empty-state">
                             <i class="fas fa-list-alt" aria-hidden="true"></i>
-                            <h3>No narrative timeline data</h3>
+                            <h3>No observations found</h3>
                             <p>Select a date and click "Load Timeline" to view your raw activities</p>
                         </div>
                     </div>
@@ -212,48 +244,29 @@
 
             <!-- Suggestions Tab -->
             <div class="tab-panel" id="suggestions-panel" role="tabpanel" aria-labelledby="suggestionsTab">
-                <div class="suggestions-layout">
-                <!-- Left Sidebar -->
-                <div class="suggestions-sidebar">
-                    <div class="sidebar-section active">
-                        <h3>Suggestions</h3>
-                    </div>
-
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-lightbulb"></i>
+                        <div class="title-content">
+                            <div class="title-text">Suggestions</div>
+                            <div class="title-subtitle">AI-POWERED INSIGHTS</div>
+                        </div>
+                    </h2>
+                    <p>Discover personalized recommendations and actionable insights based on your activity patterns and behavioral data.</p>
                 </div>
                 
-                <!-- Main Content Area -->
-                <div class="suggestions-main">
-                    <div class="suggestions-header">
-                        <h1>Suggestions</h1>
-                        <div class="suggestions-controls">
-                            <select id="suggestionsHours" class="suggestions-select">
-                                <option value="2">Last 2 hours</option>
-                                <option value="6" selected>Last 6 hours</option>
-                                <option value="12">Last 12 hours</option>
-                                <option value="24">Last 24 hours</option>
-                            </select>
-                            <button class="btn-generate" id="generateSuggestions">
-                                <i class="fas fa-magic"></i>
-                                Generate Suggestions
-                            </button>
-                        </div>
+                <div class="suggestions-content" id="suggestionsContent">
+                    <div class="empty-state">
+                        <i class="fas fa-lightbulb"></i>
+                        <h3>No suggestions available</h3>
+                        <p>Suggestions will appear here automatically based on your recent activity</p>
                     </div>
-                    
-                    <div class="suggestions-content" id="suggestionsContent">
-                        <div class="empty-state">
-                            <i class="fas fa-lightbulb"></i>
-                            <h3>No suggestions generated</h3>
-                            <p>Click "Generate Suggestions" to get proactive insights based on your recent activity</p>
-                        </div>
-                    </div>
-                </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Toast Notifications -->
-    <div id="toast" class="toast" role="alert" aria-live="polite"></div>
+    <!-- Toast container will be created dynamically by JavaScript -->
 
 
 
