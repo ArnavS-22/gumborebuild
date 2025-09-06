@@ -1255,8 +1255,9 @@ async def get_propositions_by_hour(
             # Group propositions by hour (convert UTC to local time)
             hourly_groups = {}
             for prop in propositions:
-                # Convert UTC time to local time for hour grouping
-                local_time = prop.created_at.astimezone(pytz.timezone('US/Pacific'))
+                # Ensure proper timezone handling: parse and convert UTC to local time for hour grouping
+                utc_time = parse_datetime(prop.created_at)  # This ensures UTC timezone if none present
+                local_time = utc_time.astimezone(pytz.timezone('US/Pacific'))
                 local_hour = local_time.hour
                 if local_hour not in hourly_groups:
                     hourly_groups[local_hour] = []
@@ -2696,8 +2697,9 @@ async def get_observations_by_hour(
             # Group observations by hour (convert UTC to local time)
             hourly_groups = {}
             for obs in observations:
-                # Convert UTC time to local time for hour grouping
-                local_time = obs.created_at.astimezone(pytz.timezone('US/Pacific'))
+                # Ensure proper timezone handling: parse and convert UTC to local time for hour grouping
+                utc_time = parse_datetime(obs.created_at)  # This ensures UTC timezone if none present
+                local_time = utc_time.astimezone(pytz.timezone('US/Pacific'))
                 local_hour = local_time.hour
                 if local_hour not in hourly_groups:
                     hourly_groups[local_hour] = []

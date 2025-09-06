@@ -23,12 +23,12 @@ from typing import List, Optional, Dict, Any, AsyncIterator
 from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, text
+from sqlalchemy import select, desc, text, func, literal_column
 from sqlalchemy.orm import selectinload
 
 # Import existing GUM components
 from ..db_utils import search_propositions_bm25
-from ..models import Proposition, Observation
+from ..models import Proposition, Observation, observation_proposition
 from ..suggestion_models import (
     SuggestionData, SuggestionBatch, UtilityScores, 
     ContextualProposition, ContextRetrievalResult,
@@ -46,24 +46,27 @@ logger = logging.getLogger(__name__)
 
 
 # Production-grade prompts for Gumbo algorithm
-CONTEXTUAL_RETRIEVAL_PROMPT = """You are a behavioral pattern analyst. Analyze the trigger proposition and generate a semantic search query to find related behavioral insights.
+CONTEXTUAL_RETRIEVAL_PROMPT = """You are a behavioral pattern AND content analyst. Analyze the trigger proposition and generate a semantic search query to find related behavioral insights and content.
 
 TRIGGER PROPOSITION:
 "{trigger_text}"
 
 REASONING: {trigger_reasoning}
 
-Generate a focused search query (2-4 keywords) that will find related behavioral patterns, workflows, or user preferences that could inform actionable suggestions.
+Generate a focused search query (2-4 keywords) that will find related propositions with relevant behavioral patterns and content context.
 
 Return only the search query, no explanation."""
 
-MULTI_CANDIDATE_GENERATION_PROMPT = """You are a HYPER-SPECIFIC AI assistant that MUST provide concrete, actionable solutions based on behavioral patterns + current screen activity. NO GENERIC ADVICE ALLOWED.
+MULTI_CANDIDATE_GENERATION_PROMPT = """You are a HYPER-SPECIFIC AI assistant that MUST provide concrete, actionable solutions based on behavioral patterns + current screen activity + raw observation data. NO GENERIC ADVICE ALLOWED.
 
 CURRENT BEHAVIORAL TRIGGER:
 The user just demonstrated: "{trigger_text}"
 
-RELATED BEHAVIORAL PATTERNS:
+RELATED BEHAVIORAL PATTERNS (Multi-Context):
 {related_context}
+
+RAW OBSERVATION DATA (Concrete Content Details):
+{raw_observations}
 
 CURRENT SCREEN CONTEXT:
 {current_screen_context}
@@ -72,8 +75,9 @@ CRITICAL RULES - VIOLATION MEANS REJECTION:
 1. **MUST reference specific apps/tools** you see in screen context (Canva, Instagram, Clash Royale, etc.)
 2. **MUST mention specific projects/content** (Sequestron, DECA events, specific Instagram profiles, etc.)
 3. **MUST connect to behavioral patterns** (short gaming sessions, iterative design work, multiple profile management, etc.)
-4. **MUST provide immediate, actionable solutions** (not generic productivity tips)
-5. **MUST predict next 5-30 minute needs** based on current activity + patterns
+4. **MUST reference specific content from observations** (exact text, documents, UI elements mentioned)
+5. **MUST provide immediate, actionable solutions** (not generic productivity tips)
+6. **MUST predict next 5-30 minute needs** based on current activity + patterns
 
 ANTICIPATION FRAMEWORK:
 You must PREDICT the user's next needs by analyzing:
@@ -86,7 +90,9 @@ You must PREDICT the user's next needs by analyzing:
 6. **Obstacle Prevention**: What specific problems can you prevent based on their behavioral patterns?
 7. **Current vs. Optimal Assessment**: Is what they're currently using optimal? What specific changes would improve their current situation?
 
-CRITICAL INSTRUCTION: You MUST provide specific, actionable solutions that reference their current activity and behavioral patterns. NO GENERIC ADVICE.
+CRITICAL INSTRUCTION: You MUST provide specific, actionable solutions that reference their current activity, behavioral patterns, AND specific content from the raw observation data. Use the exact text, document names, and UI elements mentioned in the observations to make suggestions hyper-specific. 
+
+IMPORTANT: Connect multiple behavioral patterns and observations to create rich, contextual suggestions. Combine high-confidence patterns with medium/low-confidence context to understand the complete user situation. NO GENERIC ADVICE.
 
 ANTICIPATION REQUIREMENTS:
 1. **Analyze Current State**: What specific app/project is the user currently using? Is it optimal?
@@ -111,6 +117,7 @@ REQUIRED HYPER-SPECIFIC FORMAT:
 Each suggestion MUST:
 - Reference the specific app/project they're currently using
 - Connect to their specific behavioral patterns
+- Reference specific content from observation data (exact text, documents, UI elements)
 - Predict what they'll need next based on their history
 - Provide specific, actionable solutions they can do RIGHT NOW
 - Prevent specific problems based on their patterns
@@ -145,12 +152,18 @@ Return JSON in this exact format:
   ]
 }}
 
-EXAMPLES OF HYPER-SPECIFIC SUGGESTIONS:
+EXAMPLES OF HYPER-SPECIFIC SUGGESTIONS USING OBSERVATION DATA:
 ❌ "Use elixir wisely in Clash Royale"
 ✅ "You're in a Clash Royale match. Based on your pattern of losing to air units, you'll need a counter-deck in the next 2-3 games. Here's your anti-air deck: Giant + Witch + Valkyrie + Fireball. Deploy Giant first, then Witch behind for air coverage."
 
 ❌ "Schedule breaks to enhance focus"
 ✅ "You're working on the Sequestron project in Canva. Based on your pattern of creating multiple copies for iterations, enable Canva's collaboration features now so you can share with your team and get feedback on the current version before making more copies."
+
+❌ "Improve your writing"
+✅ "Based on the observation showing you're working on the 'Auditing Observations' section of your GUMs paper, and your advisor's feedback about emphasizing privacy protections, rewrite the contextual norm violation detection part to highlight privacy more clearly. This addresses the specific feedback while maintaining your current workflow."
+
+❌ "Check your documents"
+✅ "The observation shows you're in the 'Auditing Observations' section of your GUMs paper. Based on your pattern of iterative document editing, save your current version now and create a backup before making the privacy-focused revisions your advisor suggested."
 
 ❌ "Enable collaboration features"
 ✅ "You're in Canva working on Sequestron. Based on your pattern of managing multiple profiles (PleasantonUSD, John, Arnav), switch to your main profile now and enable collaboration so your team can access the project directly instead of you having to share copies."
@@ -390,7 +403,8 @@ class GumboEngine:
         """
         Step 2: Contextual Retrieval
         
-        Use LLM to generate semantic search query, then retrieve related propositions.
+        Use LLM to generate semantic search query, then retrieve related propositions
+        AND their attached observations for concrete content details.
         """
         start_time = time.time()
         
@@ -410,28 +424,106 @@ class GumboEngine:
             semantic_query = semantic_query.strip().strip('"').strip("'")
             logger.info(f"🔍 Generated semantic query: '{semantic_query}'")
             
-            # Search for related propositions using BM25
+            # Search for related propositions using BM25 - INCLUDE observations this time
             search_results = await search_propositions_bm25(
                 session,
                 semantic_query,
                 mode="OR",
                 limit=20,
-                include_observations=False,
+                include_observations=True,  # CRITICAL: Get the raw observation data
                 enable_mmr=True,
                 enable_decay=True
             )
             
-            # Convert to contextual propositions
+            # FALLBACK: If BM25 search doesn't return observations, use direct query
+            if not search_results or all(not hasattr(prop, 'observations') or not prop.observations for prop, _ in search_results):
+                logger.warning("BM25 search returned no observations, using direct database query fallback")
+                
+                # Get multiple types of propositions for rich context
+                # 1. Propositions with observations (concrete data)
+                stmt_with_obs = (
+                    select(Proposition, func.count(observation_proposition.c.observation_id).label('obs_count'))
+                    .outerjoin(observation_proposition, Proposition.id == observation_proposition.c.proposition_id)
+                    .group_by(Proposition.id, Proposition.text, Proposition.reasoning, Proposition.confidence, Proposition.created_at)
+                    .having(func.count(observation_proposition.c.observation_id) > 0)
+                    .order_by(func.count(observation_proposition.c.observation_id).desc())
+                    .limit(10)
+                )
+                
+                # 2. Recent propositions (current context)
+                stmt_recent = (
+                    select(Proposition, literal_column("0").label('obs_count'))
+                    .order_by(Proposition.created_at.desc())
+                    .limit(10)
+                )
+                
+                # Execute both queries
+                result_with_obs = await session.execute(stmt_with_obs)
+                result_recent = await session.execute(stmt_recent)
+                
+                # Combine results
+                propositions_with_obs = [(prop, obs_count) for prop, obs_count in result_with_obs.fetchall()]
+                recent_propositions = [(prop, 0) for prop, _ in result_recent.fetchall()]
+                
+                # Merge and deduplicate
+                all_props = {}
+                for prop, obs_count in propositions_with_obs + recent_propositions:
+                    if prop.id not in all_props:
+                        all_props[prop.id] = (prop, obs_count)
+                
+                search_results = list(all_props.values())
+                logger.info(f"Multi-proposition query returned {len(search_results)} propositions (with observations + recent context)")
+            
+            # Convert to contextual propositions with their observations
             related_propositions = []
+            all_observations = []
+            
             for prop, score in search_results:
                 if prop.id != trigger_prop.id:  # Exclude trigger proposition
+                    # Manually load observations for this proposition
+                    try:
+                        # Get observation IDs from junction table first
+                        stmt = select(observation_proposition.c.observation_id).where(
+                            observation_proposition.c.proposition_id == prop.id
+                        )
+                        result = await session.execute(stmt)
+                        obs_ids = [row[0] for row in result.fetchall()]
+                        
+                        if obs_ids:
+                            # Check if observations actually exist
+                            stmt = select(Observation).where(Observation.id.in_(obs_ids))
+                            result = await session.execute(stmt)
+                            actual_observations = result.scalars().all()
+                            
+                            # Extract observations
+                            prop_observations = []
+                            for obs in actual_observations:
+                                prop_observations.append({
+                                    'content': obs.content,
+                                    'content_type': obs.content_type,
+                                    'created_at': obs.created_at.isoformat() if obs.created_at else None
+                                })
+                                all_observations.append({
+                                    'content': obs.content,
+                                    'content_type': obs.content_type,
+                                    'created_at': obs.created_at.isoformat() if obs.created_at else None,
+                                    'proposition_id': prop.id
+                                })
+                        else:
+                            prop_observations = []
+                            
+                    except Exception as e:
+                        logger.warning(f"Failed to load observations for proposition {prop.id}: {e}")
+                        prop_observations = []
+                    
                     related_propositions.append(ContextualProposition(
                         id=prop.id,
                         text=prop.text,
                         reasoning=prop.reasoning,
                         confidence=prop.confidence or 0.0,
                         created_at=prop.created_at,
-                        similarity_score=float(score)
+                        similarity_score=float(score),
+                        observations=prop_observations
                     ))
             
             # Limit to top 10 for context management
@@ -458,14 +550,23 @@ class GumboEngine:
             
             retrieval_time = time.time() - start_time
             
-            logger.info(f"📋 Enhanced context: {len(related_propositions)} propositions + screen content in {retrieval_time:.2f}s")
+            # Debug logging for observation data
+            total_obs_content = sum(len(obs.get('content', '')) for obs in all_observations)
+            logger.info(f"📋 Enhanced context: {len(related_propositions)} propositions + {len(all_observations)} observations ({total_obs_content} chars total) + screen content in {retrieval_time:.2f}s")
+            
+            if all_observations:
+                sample_obs = all_observations[0]
+                logger.info(f"📋 Sample observation: [{sample_obs.get('content_type', 'unknown')}] {sample_obs.get('content', '')[:100]}...")
+            else:
+                logger.warning("📋 No observations found - suggestions may be generic")
             
             return ContextRetrievalResult(
                 related_propositions=related_propositions,
                 total_found=len(search_results),
                 retrieval_time_seconds=retrieval_time,
                 semantic_query=semantic_query,
-                screen_content=current_screen_content  # NEW: Include screen content
+                screen_content=current_screen_content,  # Current screen content
+                all_observations=all_observations  # NEW: Include all raw observations
             )
             
         except Exception as e:
@@ -486,21 +587,51 @@ class GumboEngine:
         """
         Step 3: Multi-Candidate Generation
         
-        Generate 5 suggestion candidates using trigger proposition and context.
+        Generate 5 suggestion candidates using trigger proposition, context, and raw observations.
         """
         try:
-            # Prepare context for LLM
+            # Prepare multi-proposition context for LLM
             related_context = ""
-            for prop in context_result.related_propositions[:5]:  # Top 5 for context
-                related_context += f"- {prop.text} (confidence: {prop.confidence:.1f}, similarity: {prop.similarity_score:.2f})\n"
+            context_props = context_result.related_propositions[:8]  # More propositions for rich context
+            
+            # Group by type for better organization
+            high_confidence_props = [p for p in context_props if p.confidence and p.confidence >= 8]
+            medium_confidence_props = [p for p in context_props if p.confidence and 5 <= p.confidence < 8]
+            low_confidence_props = [p for p in context_props if p.confidence and p.confidence < 5]
+            
+            if high_confidence_props:
+                related_context += "**High-Confidence Patterns:**\n"
+                for prop in high_confidence_props[:3]:
+                    related_context += f"- {prop.text} (confidence: {prop.confidence:.1f})\n"
+            
+            if medium_confidence_props:
+                related_context += "\n**Medium-Confidence Context:**\n"
+                for prop in medium_confidence_props[:3]:
+                    related_context += f"- {prop.text} (confidence: {prop.confidence:.1f})\n"
+            
+            if low_confidence_props:
+                related_context += "\n**Additional Context:**\n"
+                for prop in low_confidence_props[:2]:
+                    related_context += f"- {prop.text} (confidence: {prop.confidence:.1f})\n"
             
             if not related_context:
                 related_context = "No directly related behavioral patterns found."
+            
+            # Prepare raw observations for LLM
+            raw_observations = ""
+            if context_result.all_observations:
+                for i, obs in enumerate(context_result.all_observations[:10]):  # Top 10 observations
+                    content_preview = obs.get('content', '')[:200]  # Limit length
+                    obs_type = obs.get('content_type', 'unknown')
+                    raw_observations += f"- [{obs_type}] {content_preview}...\n"
+            else:
+                raw_observations = "No raw observation data available."
             
             # Generate suggestion candidates
             generation_prompt = MULTI_CANDIDATE_GENERATION_PROMPT.format(
                 trigger_text=trigger_prop.text,
                 related_context=related_context,
+                raw_observations=raw_observations,
                 current_screen_context=context_result.screen_content if context_result.screen_content else "No current screen context available."
             )
             

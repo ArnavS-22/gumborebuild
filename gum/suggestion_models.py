@@ -143,13 +143,14 @@ class SSEEvent(BaseModel):
 
 # Context Retrieval Models
 class ContextualProposition(BaseModel):
-    """Proposition with similarity score for context retrieval."""
+    """Proposition with similarity score and observations for context retrieval."""
     id: int
     text: str
     reasoning: str
     confidence: float
     created_at: datetime
     similarity_score: float = Field(..., ge=0, le=1)
+    observations: List[Dict[str, Any]] = Field(default_factory=list, description="Raw observation data attached to this proposition")
 
 
 class ContextRetrievalResult(BaseModel):
@@ -159,3 +160,4 @@ class ContextRetrievalResult(BaseModel):
     retrieval_time_seconds: float
     semantic_query: str
     screen_content: Optional[str] = Field(None, description="Current screen content for enhanced context")
+    all_observations: List[Dict[str, Any]] = Field(default_factory=list, description="All raw observations from related propositions")
