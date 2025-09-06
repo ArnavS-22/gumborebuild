@@ -340,3 +340,247 @@
 [data-theme="dark"] .suggestions-content {
     background: var(--bg-primary);
 }
+
+/* ================================================
+   PROACTIVE VS GUMBO SUGGESTION STYLING
+   ================================================ */
+
+/* Suggestion Type Groups */
+.suggestion-type-group {
+    margin-bottom: var(--spacing-xl);
+}
+
+.suggestion-type-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.proactive-group .suggestion-type-header {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.gumbo-group .suggestion-type-header {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+.type-count {
+    background: rgba(255, 255, 255, 0.2);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-xs);
+    margin-left: auto;
+}
+
+/* Proactive Suggestion Cards */
+.proactive-suggestion {
+    border-left: 4px solid #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.02));
+}
+
+.proactive-suggestion:hover {
+    border-left-color: #d97706;
+    box-shadow: var(--shadow-glass), 0 8px 25px rgba(245, 158, 11, 0.15);
+}
+
+/* Gumbo Suggestion Cards */
+.gumbo-suggestion {
+    border-left: 4px solid #8b5cf6;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(124, 58, 237, 0.02));
+}
+
+.gumbo-suggestion:hover {
+    border-left-color: #7c3aed;
+    box-shadow: var(--shadow-glass), 0 8px 25px rgba(139, 92, 246, 0.15);
+}
+
+/* Type Indicators */
+.type-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+}
+
+.proactive-indicator {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.gumbo-indicator {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* Suggestion Timing */
+.suggestion-timing {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-style: italic;
+    margin-left: auto;
+}
+
+.proactive-suggestion .suggestion-timing {
+    color: #d97706;
+}
+
+.gumbo-suggestion .suggestion-timing {
+    color: #7c3aed;
+}
+
+/* Enhanced Action Buttons */
+.suggestion-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--spacing-lg);
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.action-btn:hover {
+    background: var(--brand-primary);
+    color: white;
+    border-color: var(--brand-primary);
+}
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .proactive-suggestion {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(217, 119, 6, 0.04));
+}
+
+[data-theme="dark"] .gumbo-suggestion {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(124, 58, 237, 0.04));
+}
+
+[data-theme="dark"] .proactive-indicator {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .gumbo-indicator {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .suggestion-type-header {
+        font-size: var(--font-size-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+    
+    .suggestion-actions {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
+    }
+    
+    .suggestion-timing {
+        align-self: flex-end;
+    }
+}
+
+/* Animation for New Suggestions */
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.suggestion-card.new-suggestion {
+    animation: slideInFromRight 0.3s ease-out;
+}
+
+/* Highlight for Real-time Suggestions */
+.suggestion-card.just-received {
+    box-shadow: 0 0 0 2px #10b981, var(--shadow-glass);
+    animation: pulse 2s ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 2px #10b981, var(--shadow-glass);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3), var(--shadow-glass);
+    }
+}
+
+/* ================================================
+   SUGGESTIONS ACTIONS - CLEAR BUTTON
+   ================================================ */
+
+.suggestions-actions {
+    margin-top: var(--spacing-lg);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+}
+
+.clear-suggestions-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-glass);
+    backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-sm);
+}
+
+.clear-suggestions-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    color: #ef4444;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.clear-suggestions-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+}
+
+.clear-suggestions-btn i {
+    font-size: var(--font-size-xs);
+}

@@ -2232,12 +2232,63 @@ button:not(.tab-button):not(.no-shine) i {
     z-index: 2;
 }
 
-/* Home Action Button - Blue transparency hover like toast notifications */
+/* Home Action Button - Using Toast Glass Effect */
+.home-action-button {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--border-radius) !important;
+    backdrop-filter: var(--backdrop-blur) !important;
+    box-shadow: var(--shadow-md) !important;
+    transition: all var(--transition-base) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: var(--spacing-sm) !important;
+    padding: var(--spacing-sm) var(--spacing-lg) !important;
+    font-size: var(--font-size-sm) !important;
+    font-weight: 500 !important;
+    font-family: var(--font-family-primary) !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    color: var(--text-primary) !important;
+}
+
 .home-action-button:hover {
-    background-color: rgba(var(--brand-cyan-rgb), 0.1) !important;
-    border-color: var(--brand-cyan);
-    transform: translateY(-1px);
+    background: var(--bg-hover) !important;
+    border-color: var(--brand-primary) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+/* Recent Suggestions Preview - Using Toast Glass Effect */
+.recent-suggestions-preview {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    backdrop-filter: var(--backdrop-blur);
     box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+}
+
+/* Home Stats Bar - Using Toast Glass Effect */
+.home-stats-bar {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+    backdrop-filter: var(--backdrop-blur);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+}
+
+/* Home Actions Grid - Using Toast Glass Effect */
+.home-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-lg);
+    margin: var(--spacing-xl) 0;
 }
 
 /* Subtle glow effect on focus/active */
@@ -2434,6 +2485,172 @@ button:not(.tab-button):not(.no-shine) i {
 .proposition-card:nth-child(1) { animation-delay: 0.1s; }
 .proposition-card:nth-child(2) { animation-delay: 0.2s; }
 .proposition-card:nth-child(3) { animation-delay: 0.3s; }
+
+/* Settings Tab Styles - Using Toast Glass Effect */
+.settings-content {
+    padding: var(--spacing-lg);
+}
+
+.settings-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.settings-option-button {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+    min-height: 60px;
+}
+
+.settings-option-button:hover {
+    background: var(--bg-hover);
+    border-color: var(--brand-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.settings-option-button i:first-child {
+    font-size: 1.2rem;
+    color: var(--brand-primary);
+    width: 20px;
+    text-align: center;
+}
+
+.option-content {
+    flex: 1;
+}
+
+.option-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.option-description {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.settings-option-button i:last-child {
+    color: var(--text-tertiary);
+    font-size: 0.8rem;
+}
+
+/* Memory Tab Styles - Using Toast Glass Effect */
+.memory-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.back-button:hover {
+    background: var(--bg-hover);
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.memory-content {
+    /* Full width content without navigation constraints */
+    width: 100%;
+}
+
+/* Memory Content Cards - Using Toast Glass Effect */
+.memory-content .card-header {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    backdrop-filter: var(--backdrop-blur);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+}
+
+.memory-content .propositions-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    backdrop-filter: var(--backdrop-blur);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+}
+
+.memory-content .propositions-stats {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    backdrop-filter: var(--backdrop-blur);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+}
+
+.memory-content .pagination-controls {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+    backdrop-filter: var(--backdrop-blur);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+}
+
+.memory-content .card-header {
+    margin-bottom: var(--spacing-lg);
+}
+
+.memory-content .propositions-content {
+    /* Ensure full width for memory content */
+    width: 100%;
+}
+
+/* Hide navigation when in memory view */
+body.memory-view .tabs-navigation {
+    display: none;
+}
+
+body.memory-view .tabs-content {
+    margin-left: 0;
+    width: 100%;
+}
 .proposition-card:nth-child(4) { animation-delay: 0.4s; }
 .proposition-card:nth-child(5) { animation-delay: 0.5s; }
 

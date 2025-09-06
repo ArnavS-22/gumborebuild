@@ -19,6 +19,7 @@ class ZavionApp {
         
         // Propositions pagination
         this.currentPropositionsPage = 1;
+        this.currentMemoryPage = 1;
         
         // Tab management
         this.activeTab = 'home';
@@ -207,6 +208,7 @@ class ZavionApp {
         this.setupEventListeners();
         this.setupTabNavigation();
         this.setupPropositionsListeners();
+        this.setupMemoryListeners();
         this.setupTimelineListeners();
         this.setupNarrativeTimelineListeners();
         this.setupSuggestionsListeners();
@@ -1137,6 +1139,54 @@ class ZavionApp {
     }
 
     /**
+     * Setup event listeners for memory tab
+     */
+    setupMemoryListeners() {
+        const loadMemoryPropositionsBtn = document.getElementById('loadMemoryPropositions');
+        const memoryConfidenceFilter = document.getElementById('memoryConfidenceFilter');
+        const memorySortBySelect = document.getElementById('memorySortBy');
+        const prevMemoryBtn = document.getElementById('prevMemoryPropositions');
+        const nextMemoryBtn = document.getElementById('nextMemoryPropositions');
+
+        if (loadMemoryPropositionsBtn) {
+            loadMemoryPropositionsBtn.addEventListener('click', () => {
+                this.currentMemoryPage = 1;
+                this.loadMemoryPropositions();
+            });
+        }
+
+        if (memoryConfidenceFilter) {
+            memoryConfidenceFilter.addEventListener('change', () => {
+                this.currentMemoryPage = 1;
+                this.loadMemoryPropositions();
+            });
+        }
+
+        if (memorySortBySelect) {
+            memorySortBySelect.addEventListener('change', () => {
+                this.currentMemoryPage = 1;
+                this.loadMemoryPropositions();
+            });
+        }
+
+        if (prevMemoryBtn) {
+            prevMemoryBtn.addEventListener('click', () => {
+                if (this.currentMemoryPage > 1) {
+                    this.currentMemoryPage--;
+                    this.loadMemoryPropositions();
+                }
+            });
+        }
+
+        if (nextMemoryBtn) {
+            nextMemoryBtn.addEventListener('click', () => {
+                this.currentMemoryPage++;
+                this.loadMemoryPropositions();
+            });
+        }
+    }
+
+    /**
      * Load propositions from the API
      */
     async loadPropositions() {
@@ -1384,6 +1434,183 @@ class ZavionApp {
         return div.innerHTML;
     }
 
+    /**
+     * Load memory propositions from the API (same as insights but for memory tab)
+     */
+    async loadMemoryPropositions() {
+        const loadBtn = document.getElementById('loadMemoryPropositions');
+        const contentContainer = document.getElementById('memoryPropositionsContent');
+        const statsContainer = document.getElementById('memoryPropositionsStats');
+        const paginationContainer = document.getElementById('memoryPropositionsPagination');
+
+        if (!contentContainer) return;
+
+        try {
+            // Show loading state with text shimmer
+            let buttonLoadingInstanceId = null;
+            if (loadBtn) {
+                buttonLoadingInstanceId = this.showButtonLoading(loadBtn, 'Loading insights...', {
+                    color: 'cyan',
+                    fast: true
+                });
+            }
+
+            // Show card loading state
+            const cardLoadingInstanceId = this.showCardLoading(contentContainer, 'Loading insights...', {
+                color: 'cyan',
+                size: 'lg'
+            });
+
+            // Get filter values
+            const confidenceMin = document.getElementById('memoryConfidenceFilter')?.value || null;
+            const sortBy = document.getElementById('memorySortBy')?.value || 'created_at';
+            const limit = 20;
+            const offset = (this.currentMemoryPage - 1) * limit;
+
+            // Build query parameters
+            const params = new URLSearchParams({
+                limit: limit.toString(),
+                offset: offset.toString(),
+                sort_by: sortBy
+            });
+
+            if (confidenceMin) {
+                params.append('confidence_min', confidenceMin);
+            }
+
+            // Fetch propositions
+            const response = await fetch(`${this.apiBaseUrl}/propositions?${params}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const propositions = await response.json();
+
+            // Fetch count for stats
+            const countParams = new URLSearchParams();
+            if (confidenceMin) {
+                countParams.append('confidence_min', confidenceMin);
+            }
+
+            const countResponse = await fetch(`${this.apiBaseUrl}/propositions/count?${countParams}`);
+            const countData = await countResponse.json();
+
+            // Hide loading states
+            if (buttonLoadingInstanceId) {
+                this.hideButtonLoading(buttonLoadingInstanceId);
+            }
+            this.hideCardLoading(cardLoadingInstanceId);
+
+            // Display results
+            this.displayMemoryPropositions(propositions, countData);
+            this.updateMemoryPagination(propositions.length, limit);
+
+            this.showToast(`Loaded ${propositions.length} insights`, 'success');
+
+        } catch (error) {
+            console.error('Error loading memory propositions:', error);
+            this.showToast(`Failed to load insights: ${error.message}`, 'error');
+            this.displayEmptyMemoryPropositions();
+        }
+    }
+
+    /**
+     * Display memory propositions in the UI
+     */
+    displayMemoryPropositions(propositions, countData) {
+        const contentContainer = document.getElementById('memoryPropositionsContent');
+        const statsContainer = document.getElementById('memoryPropositionsStats');
+
+        if (!contentContainer) return;
+
+        // Show stats
+        if (statsContainer && countData) {
+            statsContainer.style.display = 'flex';
+            statsContainer.innerHTML = `
+                <div class="stat-item">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Total: ${countData.total_propositions} insights</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-filter"></i>
+                    <span>Showing: ${propositions.length} results</span>
+                </div>
+                ${countData.confidence_filter ? `
+                    <div class="stat-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Min Confidence: ${countData.confidence_filter}</span>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        // Display propositions
+        if (propositions.length === 0) {
+            this.displayEmptyMemoryPropositions();
+            return;
+        }
+
+        contentContainer.innerHTML = propositions.map((prop, index) => 
+            this.createPropositionCard(prop, index)
+        ).join('');
+    }
+
+    /**
+     * Display empty state for memory propositions
+     */
+    displayEmptyMemoryPropositions() {
+        const contentContainer = document.getElementById('memoryPropositionsContent');
+        const statsContainer = document.getElementById('memoryPropositionsStats');
+        
+        if (statsContainer) {
+            statsContainer.style.display = 'none';
+        }
+
+        if (contentContainer) {
+            contentContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-lightbulb"></i>
+                    <h3>No insights found</h3>
+                    <p>No propositions match your current filters. Try adjusting the confidence level or submit more observations.</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Update memory pagination controls
+     */
+    updateMemoryPagination(resultCount, limit) {
+        const paginationContainer = document.getElementById('memoryPropositionsPagination');
+        const prevBtn = document.getElementById('prevMemoryPropositions');
+        const nextBtn = document.getElementById('nextMemoryPropositions');
+        const pageInfo = document.getElementById('memoryPropositionsPageInfo');
+
+        if (!paginationContainer) return;
+
+        // Show pagination if we have results
+        if (resultCount > 0) {
+            paginationContainer.style.display = 'flex';
+            
+            // Update page info
+            if (pageInfo) {
+                pageInfo.textContent = `Page ${this.currentMemoryPage}`;
+            }
+
+            // Update button states
+            if (prevBtn) {
+                prevBtn.disabled = this.currentMemoryPage <= 1;
+            }
+
+            if (nextBtn) {
+                nextBtn.disabled = resultCount < limit;
+            }
+        } else {
+            paginationContainer.style.display = 'none';
+        }
+    }
+
     // ===== TAB NAVIGATION FUNCTIONALITY =====
 
     /**
@@ -1449,7 +1676,7 @@ class ZavionApp {
         // Handle sidebar visibility
         const sidebar = document.querySelector('.tabs-navigation');
         if (sidebar) {
-            if (tabName === 'home') {
+            if (tabName === 'home' || tabName === 'memory') {
                 sidebar.style.display = 'none';
             } else {
                 sidebar.style.display = 'block';
@@ -1459,18 +1686,22 @@ class ZavionApp {
         // Toggle top-nav layout only where sidebar used to show (non-Home tabs)
         const main = document.querySelector('.main-content');
         if (main) {
-            if (tabName === 'home') {
+            if (tabName === 'home' || tabName === 'memory') {
                 main.classList.remove('has-top-nav');
             } else {
                 main.classList.add('has-top-nav');
             }
         }
 
+        // Handle memory view body class
+        if (tabName === 'memory') {
+            document.body.classList.add('memory-view');
+        } else {
+            document.body.classList.remove('memory-view');
+        }
+
         // Load content based on tab
         switch (tabName) {
-            case 'insights':
-                this.loadPropositions();
-                break;
             case 'timeline':
                 this.loadTimeline();
                 break;
@@ -1480,6 +1711,11 @@ class ZavionApp {
             case 'suggestions':
                 // Initialize real-time suggestion stream
                 this.initializeSuggestionStream();
+                break;
+            case 'memory':
+                // Load memory propositions
+                this.currentMemoryPage = 1;
+                this.loadMemoryPropositions();
                 break;
             // 'dashboard' tab removed; Home CTA routes to 'timeline'
         }
@@ -2969,11 +3205,99 @@ class ZavionApp {
                 }
             });
             
-            this.showToast('New suggestions received!', 'success');
+            // Determine suggestion type for appropriate toast message
+            const suggestionType = batch.type || 'gumbo';
+            const typeLabel = suggestionType === 'proactive' ? 'Immediate' : 'Pattern-based';
+            
+            this.showToast(`${typeLabel} suggestions received!`, 'success');
         }
         
         // Always reload the full suggestions view organized by time
         this.loadAllSuggestions();
+    }
+
+    /**
+     * Handle proactive suggestions from SSE stream
+     */
+    displayProactiveSuggestions(data) {
+        if (data && data.suggestions && data.suggestions.length > 0) {
+            // Add metadata to proactive suggestions
+            data.suggestions.forEach(suggestion => {
+                suggestion.type = 'proactive';
+                suggestion.category = suggestion.category || 'proactive';
+                if (!suggestion.created_at) {
+                    suggestion.created_at = data.generated_at || new Date().toISOString();
+                }
+            });
+            
+            this.showToast(`${data.suggestions.length} immediate suggestions received!`, 'success');
+            
+            // Reload suggestions to show new proactive ones
+            this.loadAllSuggestions();
+        }
+    }
+
+    /**
+     * Clear all suggestions from the database
+     */
+    async clearAllSuggestions() {
+        // Show confirmation dialog
+        const confirmed = confirm('Are you sure you want to clear all suggestions? This action cannot be undone.');
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            // Show loading state
+            const clearBtn = document.getElementById('clearSuggestionsBtn');
+            if (clearBtn) {
+                clearBtn.disabled = true;
+                clearBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clearing...';
+            }
+
+            // Call the clear suggestions API
+            const response = await fetch(`${this.apiBaseUrl}/suggestions/clear`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                // Clear the UI
+                const content = document.getElementById('suggestionsContent');
+                if (content) {
+                    content.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-lightbulb"></i>
+                            <h3>No suggestions available</h3>
+                            <p>Suggestions will appear here automatically based on your recent activity</p>
+                        </div>
+                    `;
+                }
+
+                // Clear the cache
+                if (this.suggestionPolling) {
+                    this.suggestionPolling.suggestionsCache.clear();
+                }
+
+                // Show success message
+                this.showToast('✅ All suggestions cleared successfully!', 'success');
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to clear suggestions');
+            }
+        } catch (error) {
+            console.error('Error clearing suggestions:', error);
+            this.showToast(`❌ Error clearing suggestions: ${error.message}`, 'error');
+        } finally {
+            // Reset button state
+            const clearBtn = document.getElementById('clearSuggestionsBtn');
+            if (clearBtn) {
+                clearBtn.disabled = false;
+                clearBtn.innerHTML = '<i class="fas fa-trash"></i> Clear All Suggestions';
+            }
+        }
     }
 
     /**
@@ -3084,6 +3408,40 @@ class ZavionApp {
         sectionConfigs.forEach(config => {
             const suggestions = timeGroups[config.key];
             if (suggestions && suggestions.length > 0) {
+                // Group suggestions by type within each time period
+                const proactiveSuggestions = suggestions.filter(s => s.type === 'proactive' || s.category === 'proactive');
+                const gumboSuggestions = suggestions.filter(s => s.type !== 'proactive' && s.category !== 'proactive');
+                
+                let sectionContent = '';
+                
+                // Add proactive suggestions first (more immediate)
+                if (proactiveSuggestions.length > 0) {
+                    sectionContent += `
+                        <div class="suggestion-type-group proactive-group">
+                            <div class="suggestion-type-header">
+                                <i class="fas fa-bolt"></i>
+                                <span>Immediate Suggestions</span>
+                                <span class="type-count">${proactiveSuggestions.length}</span>
+                            </div>
+                            ${proactiveSuggestions.map((suggestion, index) => this.renderSuggestionCard(suggestion, index, 'proactive')).join('')}
+                        </div>
+                    `;
+                }
+                
+                // Add Gumbo suggestions second (behavioral patterns)
+                if (gumboSuggestions.length > 0) {
+                    sectionContent += `
+                        <div class="suggestion-type-group gumbo-group">
+                            <div class="suggestion-type-header">
+                                <i class="fas fa-brain"></i>
+                                <span>Pattern-Based Suggestions</span>
+                                <span class="type-count">${gumboSuggestions.length}</span>
+                            </div>
+                            ${gumboSuggestions.map((suggestion, index) => this.renderSuggestionCard(suggestion, index, 'gumbo')).join('')}
+                        </div>
+                    `;
+                }
+                
                 sections.push(`
                     <div class="suggestions-time-section">
                         <div class="suggestions-time-header">
@@ -3092,7 +3450,7 @@ class ZavionApp {
                             <span class="suggestions-count">${suggestions.length}</span>
                         </div>
                         <div class="suggestions-list">
-                            ${suggestions.map((suggestion, index) => this.renderSuggestionCard(suggestion, index)).join('')}
+                            ${sectionContent}
                         </div>
                     </div>
                 `);
@@ -3105,12 +3463,21 @@ class ZavionApp {
     /**
      * Render individual suggestion card
      */
-    renderSuggestionCard(suggestion, index) {
+    renderSuggestionCard(suggestion, index, type = 'gumbo') {
+        const isProactive = type === 'proactive' || suggestion.type === 'proactive' || suggestion.category === 'proactive';
+        const cardClass = isProactive ? 'suggestion-card proactive-suggestion' : 'suggestion-card gumbo-suggestion';
+        const typeIcon = isProactive ? 'fas fa-bolt' : 'fas fa-brain';
+        const typeLabel = isProactive ? 'Immediate' : 'Pattern-Based';
+        
         return `
-            <div class="suggestion-card gumbo-suggestion" data-suggestion-index="${index}">
+            <div class="${cardClass}" data-suggestion-index="${index}" data-suggestion-type="${type}">
                 <div class="suggestion-header">
                     <h4 class="suggestion-title">${this.escapeHtml(suggestion.title)}</h4>
                     <div class="suggestion-meta">
+                        <span class="type-indicator ${isProactive ? 'proactive-indicator' : 'gumbo-indicator'}">
+                            <i class="${typeIcon}"></i>
+                            ${typeLabel}
+                        </span>
                         <span class="category-badge" data-category="${suggestion.category}">
                             ${this.escapeHtml(suggestion.category || 'General')}
                         </span>
@@ -3134,8 +3501,19 @@ class ZavionApp {
                 ` : ''}
                 <div class="suggestion-actions">
                     <button class="action-btn" onclick="window.zavionApp.copySuggestion(${index})">
-                         Copy
+                        <i class="fas fa-copy"></i> Copy
                     </button>
+                    ${isProactive ? `
+                        <span class="suggestion-timing">
+                            <i class="fas fa-clock"></i>
+                            Actionable now
+                        </span>
+                    ` : `
+                        <span class="suggestion-timing">
+                            <i class="fas fa-chart-line"></i>
+                            Based on patterns
+                        </span>
+                    `}
                 </div>
             </div>
         `;
@@ -3387,7 +3765,7 @@ class ZavionApp {
             const timeLabel = insight.created_at ? this.formatLocalTime(insight.created_at) : 'Unknown time';
             
             return `
-                <div class="timeline-proposition-card" onclick="window.zavionApp?.switchTab('insights')">
+                <div class="timeline-proposition-card" onclick="window.zavionApp?.switchTab('memory')">
                     <div class="timeline-proposition-header">
                         <span class="timeline-proposition-time">${timeLabel}</span>
                         <span class="confidence-badge ${confidenceClass}">

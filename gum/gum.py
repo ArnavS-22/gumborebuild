@@ -505,10 +505,18 @@ class gum:
         pool: dict[int, Proposition] = {}
 
         for itm in drafts_raw:
+            # Convert confidence to int if it's a string
+            confidence = itm.get("confidence")
+            if isinstance(confidence, str):
+                try:
+                    confidence = int(confidence)
+                except ValueError:
+                    confidence = None
+            
             draft = Proposition(
                 text=itm["proposition"],
                 reasoning=itm["reasoning"],
-                confidence=itm.get("confidence"),
+                confidence=confidence,
                 decay=itm.get("decay"),
                 revision_group=str(uuid4()),
                 version=1,
@@ -682,6 +690,16 @@ class gum:
             session.add(observation)
             await session.flush() # Observation gets its ID
 
+            # NEW: Trigger proactive suggestions on EVERY observation
+            # This provides immediate contextual suggestions based on transcription data
+            try:
+                from .services.proactive_engine import trigger_proactive_suggestions
+                # Fire and forget - don't block proposition generation
+                asyncio.create_task(self._trigger_proactive_suggestions(observation.id, session))
+                self.logger.info(f"🚀 Proactive suggestions triggered for observation {observation.id}")
+            except Exception as e:
+                self.logger.error(f"Failed to trigger proactive suggestions for observation {observation.id}: {e}")
+
             pool = await self._generate_and_search(session, update, observation)
 
             if pool:
@@ -712,6 +730,62 @@ class gum:
             .values(observation_id=obs.id, proposition_id=prop.id)
         )
         prop.updated_at = datetime.now(timezone.utc)
+
+    async def _trigger_proactive_suggestions(self, observation_id: int, session: AsyncSession):
+        """
+        Trigger proactive suggestions for an observation.
+        
+        This method handles the proactive suggestion generation and SSE broadcasting.
+        It's called asynchronously to avoid blocking the main observation processing flow.
+        
+        Args:
+            observation_id: ID of the observation to analyze
+            session: Database session (note: this creates a new session to avoid conflicts)
+        """
+        try:
+            # Import here to avoid circular imports
+            from .services.proactive_engine import trigger_proactive_suggestions
+            
+            # Create a new session for proactive processing to avoid conflicts
+            async with self._session() as proactive_session:
+                suggestions = await trigger_proactive_suggestions(observation_id, proactive_session)
+                
+                if suggestions and len(suggestions) > 0:
+                    # Broadcast proactive suggestions via SSE
+                    await self._broadcast_proactive_suggestions(suggestions, observation_id)
+                    self.logger.info(f"✅ Broadcasted {len(suggestions)} proactive suggestions for observation {observation_id}")
+                else:
+                    self.logger.info(f"No proactive suggestions generated for observation {observation_id}")
+                    
+        except Exception as e:
+            self.logger.error(f"Error in proactive suggestion processing for observation {observation_id}: {e}")
+
+    async def _broadcast_proactive_suggestions(self, suggestions: list, observation_id: int):
+        """
+        Broadcast proactive suggestions via SSE using the existing SSE manager.
+        
+        Args:
+            suggestions: List of suggestion dictionaries
+            observation_id: ID of the triggering observation
+        """
+        try:
+            from .services.sse_manager import get_sse_manager
+            sse_manager = get_sse_manager()
+            
+            # Format suggestions for SSE broadcast
+            suggestion_data = {
+                "suggestions": suggestions,
+                "type": "proactive",
+                "trigger_observation_id": observation_id,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "count": len(suggestions)
+            }
+            
+            await sse_manager.broadcast_event("proactive_suggestions", suggestion_data)
+            self.logger.info(f"Broadcasted proactive suggestions via SSE for observation {observation_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to broadcast proactive suggestions via SSE: {e}")
 
     def add_observer(self, observer: Observer):
         """Add an observer to track user behavior.

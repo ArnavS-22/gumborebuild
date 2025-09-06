@@ -2940,9 +2940,10 @@ async def get_suggestion_history(
     user_name: Optional[str] = None,
     limit: Optional[int] = 50,
     offset: Optional[int] = 0,
-    delivered_only: Optional[bool] = None
+    delivered_only: Optional[bool] = None,
+    suggestion_type: Optional[str] = None  # NEW: Filter by "proactive" or "gumbo"
 ):
-    """Get historical suggestions from database."""
+    """Get historical suggestions from database, including both proactive and Gumbo suggestions."""
     
     try:
         gum_inst = await ensure_gum_instance(user_name)
@@ -2955,6 +2956,13 @@ async def get_suggestion_history(
             
             if delivered_only is not None:
                 stmt = stmt.where(Suggestion.delivered == delivered_only)
+            
+            # NEW: Filter by suggestion type (proactive vs gumbo)
+            if suggestion_type:
+                if suggestion_type.lower() == "proactive":
+                    stmt = stmt.where(Suggestion.category == "proactive")
+                elif suggestion_type.lower() == "gumbo":
+                    stmt = stmt.where(Suggestion.category != "proactive")
             
             stmt = stmt.limit(limit).offset(offset)
             
@@ -2973,7 +2981,8 @@ async def get_suggestion_history(
                     "trigger_proposition_id": s.trigger_proposition_id,
                     "batch_id": s.batch_id,
                     "delivered": s.delivered,
-                    "created_at": s.created_at.isoformat() if hasattr(s.created_at, 'isoformat') else str(s.created_at)
+                    "created_at": s.created_at.isoformat() if hasattr(s.created_at, 'isoformat') else str(s.created_at),
+                    "type": "proactive" if s.category == "proactive" else "gumbo"  # NEW: Add type field
                 }
                 for s in suggestions
             ]
@@ -3011,7 +3020,7 @@ async def test_trigger_gumbo():
         gum_inst = await ensure_gum_instance()
         async with gum_inst._session() as session:
             from sqlalchemy import select, desc
-            from models import Proposition
+            from gum.models import Proposition
             
             stmt = select(Proposition).order_by(desc(Proposition.created_at)).limit(1)
             result = await session.execute(stmt)
@@ -3041,6 +3050,140 @@ async def test_trigger_gumbo():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Test trigger failed: {str(e)}"
+        )
+
+
+@app.post("/suggestions/test-proactive")
+async def test_trigger_proactive():
+    """
+    TEST ENDPOINT: Manually trigger proactive suggestion generation for testing.
+    This uses the most recent observation to demonstrate the proactive system working.
+    """
+    try:
+        # Get the most recent observation to use as trigger
+        gum_inst = await ensure_gum_instance()
+        async with gum_inst._session() as session:
+            from sqlalchemy import select, desc
+            from gum.models import Observation
+            
+            stmt = select(Observation).order_by(desc(Observation.created_at)).limit(1)
+            result = await session.execute(stmt)
+            recent_obs = result.scalar_one_or_none()
+            
+            if not recent_obs:
+                return {"error": "No observations found to use as trigger"}
+            
+            # Manually trigger proactive suggestions
+            logger.info(f"🧪 TEST: Manually triggering proactive suggestions for observation {recent_obs.id}")
+            
+            # Import and trigger
+            from gum.services.proactive_engine import trigger_proactive_suggestions
+            
+            # Execute and wait for result (for testing purposes)
+            suggestions = await trigger_proactive_suggestions(recent_obs.id, session)
+            
+            if suggestions:
+                return {
+                    "message": "Proactive suggestions generated successfully",
+                    "observation_id": recent_obs.id,
+                    "suggestions_count": len(suggestions),
+                    "suggestions": suggestions,
+                    "note": "Check the Suggestions tab for real-time results"
+                }
+            else:
+                return {
+                    "message": "No proactive suggestions generated",
+                    "observation_id": recent_obs.id,
+                    "note": "The observation content may not have contained specific enough details for suggestions"
+                }
+            
+    except Exception as e:
+        logger.error(f"Proactive test trigger failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Proactive test trigger failed: {str(e)}"
+        )
+
+
+@app.get("/suggestions/stats")
+async def get_suggestion_stats(user_name: Optional[str] = None):
+    """Get statistics about both proactive and Gumbo suggestions."""
+    try:
+        gum_inst = await ensure_gum_instance(user_name)
+        
+        async with gum_inst._session() as session:
+            from gum.models import Suggestion
+            from sqlalchemy import select, func
+            
+            # Get total counts by type
+            proactive_count_stmt = select(func.count(Suggestion.id)).where(Suggestion.category == "proactive")
+            gumbo_count_stmt = select(func.count(Suggestion.id)).where(Suggestion.category != "proactive")
+            
+            proactive_result = await session.execute(proactive_count_stmt)
+            gumbo_result = await session.execute(gumbo_count_stmt)
+            
+            proactive_count = proactive_result.scalar()
+            gumbo_count = gumbo_result.scalar()
+            
+            # Get recent suggestions
+            recent_stmt = select(Suggestion).order_by(desc(Suggestion.created_at)).limit(5)
+            recent_result = await session.execute(recent_stmt)
+            recent_suggestions = recent_result.scalars().all()
+            
+            return {
+                "total_suggestions": proactive_count + gumbo_count,
+                "proactive_suggestions": proactive_count,
+                "gumbo_suggestions": gumbo_count,
+                "recent_suggestions": [
+                    {
+                        "id": s.id,
+                        "title": s.title,
+                        "type": "proactive" if s.category == "proactive" else "gumbo",
+                        "created_at": s.created_at.isoformat() if hasattr(s.created_at, 'isoformat') else str(s.created_at)
+                    }
+                    for s in recent_suggestions
+                ],
+                "timestamp": serialize_datetime(datetime.now(timezone.utc))
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting suggestion stats: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting suggestion stats: {str(e)}"
+        )
+
+
+@app.delete("/suggestions/clear")
+async def clear_all_suggestions(user_name: Optional[str] = None):
+    """Clear all suggestions from the database."""
+    try:
+        gum_inst = await ensure_gum_instance(user_name)
+        
+        async with gum_inst._session() as session:
+            from gum.models import Suggestion
+            from sqlalchemy import delete
+            
+            # Delete all suggestions
+            delete_stmt = delete(Suggestion)
+            result = await session.execute(delete_stmt)
+            deleted_count = result.rowcount
+            
+            await session.commit()
+            
+            logger.info(f"Cleared {deleted_count} suggestions from database")
+            
+            return {
+                "message": f"Successfully cleared {deleted_count} suggestions",
+                "deleted_count": deleted_count,
+                "timestamp": serialize_datetime(datetime.now(timezone.utc))
+            }
+            
+    except Exception as e:
+        logger.error(f"Error clearing suggestions: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error clearing suggestions: {str(e)}"
         )
 
 
