@@ -36,6 +36,133 @@ class ZavionApp {
         this.textShimmerInstances = new Map();
         
         this.init();
+        this.ensureIconsLoaded();
+    }
+    
+    // Ensure Font Awesome icons are properly loaded and displayed
+    ensureIconsLoaded() {
+        // Check if Font Awesome is loaded
+        const checkFontAwesome = () => {
+            const testIcon = document.createElement('i');
+            testIcon.className = 'fas fa-home';
+            testIcon.style.visibility = 'hidden';
+            testIcon.style.position = 'absolute';
+            testIcon.style.left = '-9999px';
+            document.body.appendChild(testIcon);
+            
+            const computedStyle = window.getComputedStyle(testIcon, ':before');
+            const content = computedStyle.content;
+            document.body.removeChild(testIcon);
+            
+            return content && content !== 'none' && content !== '""';
+        };
+        
+        // If Font Awesome isn't loaded, try to load it
+        if (!checkFontAwesome()) {
+            console.log('Font Awesome not detected, loading fallback...');
+            this.loadFontAwesomeFallback();
+        }
+        
+        // Ensure all existing icons are properly styled
+        this.styleAllIcons();
+    }
+    
+    loadFontAwesomeFallback() {
+        // Create a fallback stylesheet for critical icons
+        const fallbackCSS = `
+            .fa-home::before { content: "🏠"; }
+            .fa-clock::before { content: "🕐"; }
+            .fa-list-alt::before { content: "📋"; }
+            .fa-lightbulb::before { content: "💡"; }
+            .fa-cog::before { content: "⚙️"; }
+            .fa-brain::before { content: "🧠"; }
+            .fa-search::before { content: "🔍"; }
+            .fa-trash::before { content: "🗑️"; }
+            .fa-chevron-left::before { content: "◀"; }
+            .fa-chevron-right::before { content: "▶"; }
+            .fa-arrow-left::before { content: "←"; }
+            .fa-broom::before { content: "🧹"; }
+            .fa-calendar::before { content: "📅"; }
+            .fa-calendar-times::before { content: "📅"; }
+            .fa-chart-line::before { content: "📈"; }
+            .fa-star::before { content: "⭐"; }
+            .fa-filter::before { content: "🔽"; }
+            .fa-copy::before { content: "📋"; }
+            .fa-bolt::before { content: "⚡"; }
+            .fa-sun::before { content: "☀️"; }
+            .fa-moon::before { content: "🌙"; }
+            .fa-spinner::before { content: "⟳"; }
+            .fa-check-circle::before { content: "✅"; }
+            .fa-exclamation-circle::before { content: "❌"; }
+            .fa-exclamation-triangle::before { content: "⚠️"; }
+            .fa-info-circle::before { content: "ℹ️"; }
+            .fa-times::before { content: "✕"; }
+            .fa-eye::before { content: "👁️"; }
+            .fa-circle::before { content: "●"; }
+            .fa-play::before { content: "▶️"; }
+            .fa-stop::before { content: "⏹️"; }
+            .fa-sync::before { content: "🔄"; }
+            .fa-upload::before { content: "📤"; }
+            .fa-check::before { content: "✓"; }
+            .fa-exclamation::before { content: "!"; }
+            .fa-archive::before { content: "📦"; }
+            .fa-globe::before { content: "🌍"; }
+        `;
+        
+        const style = document.createElement('style');
+        style.textContent = fallbackCSS;
+        document.head.appendChild(style);
+    }
+    
+    styleAllIcons() {
+        // Ensure all icons have proper styling
+        const icons = document.querySelectorAll('i[class*="fa-"]');
+        icons.forEach(icon => {
+            if (!icon.style.fontFamily.includes('Font Awesome')) {
+                icon.style.fontFamily = '"Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 6 Brands"';
+                icon.style.fontWeight = '900';
+                icon.style.fontStyle = 'normal';
+                icon.style.textRendering = 'auto';
+                icon.style.webkitFontSmoothing = 'antialiased';
+                icon.style.mozOsxFontSmoothing = 'grayscale';
+            }
+        });
+    }
+    
+    // Call this method whenever new content with icons is added dynamically
+    refreshIcons() {
+        this.styleAllIcons();
+    }
+    
+    // Set up automatic icon refresh when DOM changes
+    setupIconObserver() {
+        const observer = new MutationObserver((mutations) => {
+            let shouldRefresh = false;
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    // Check if any added nodes contain icons
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            if (node.matches && node.matches('i[class*="fa-"]')) {
+                                shouldRefresh = true;
+                            } else if (node.querySelector && node.querySelector('i[class*="fa-"]')) {
+                                shouldRefresh = true;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            if (shouldRefresh) {
+                this.refreshIcons();
+            }
+        });
+        
+        // Start observing
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
     }
 
     async apiCall(url, options = {}) {
@@ -209,6 +336,10 @@ class ZavionApp {
         this.setupTabNavigation();
         this.setupPropositionsListeners();
         this.setupMemoryListeners();
+        // Ensure icons are styled after initial load
+        setTimeout(() => this.refreshIcons(), 100);
+        // Set up automatic icon refresh
+        this.setupIconObserver();
         this.setupTimelineListeners();
         this.setupNarrativeTimelineListeners();
         this.setupSuggestionsListeners();
@@ -409,6 +540,7 @@ class ZavionApp {
         // Create results HTML
         const resultsHtml = this.generateResultsHTML(results);
         resultsContent.innerHTML = resultsHtml;
+        this.refreshIcons();
         
         // Scroll to results
         resultsSection.scrollIntoView({ behavior: 'smooth' });
@@ -1840,6 +1972,23 @@ class ZavionApp {
             return;
         }
 
+        // Collect all propositions from all hours and sort by created_at (latest first)
+        const allPropositions = [];
+        timelineData.hourly_groups.forEach(hourGroup => {
+            if (hourGroup.propositions && Array.isArray(hourGroup.propositions)) {
+                hourGroup.propositions.forEach(prop => {
+                    allPropositions.push(prop);
+                });
+            }
+        });
+
+        // Sort by created_at in descending order (latest first)
+        allPropositions.sort((a, b) => {
+            const aTime = a?.created_at ? new Date(a.created_at).getTime() : 0;
+            const bTime = b?.created_at ? new Date(b.created_at).getTime() : 0;
+            return bTime - aTime; // Descending order (latest first)
+        });
+
         // Format date for display - ensure proper timezone handling
         let displayDate;
         try {
@@ -1868,109 +2017,50 @@ class ZavionApp {
                 </h3>
                 <div class="timeline-stats">
                     <div class="timeline-stat">
-                        <i class="fas fa-clock"></i>
-                        <span>${timelineData.total_hours} ${timelineData.total_hours === 1 ? 'hour' : 'hours'}</span>
+                        <i class="fas fa-lightbulb"></i>
+                        <span>${allPropositions.length} ${allPropositions.length === 1 ? 'insight' : 'insights'}</span>
                     </div>
                     <div class="timeline-stat">
-                        <i class="fas fa-lightbulb"></i>
-                        <span>${timelineData.total_propositions} ${timelineData.total_propositions === 1 ? 'insight' : 'insights'}</span>
+                        <i class="fas fa-globe"></i>
+                        <span>${this.getCurrentTimezone()}</span>
                     </div>
                 </div>
             </div>
-            <div class="timeline-hours">
-                ${this.createConsolidatedTimelineCard(timelineData.hourly_groups)}
+            <div class="timeline-insights">
+                ${allPropositions.map((prop, index) => {
+                    const timeLabel = prop?.created_at ? this.formatLocalTime(prop.created_at) : 'Unknown time';
+                    const shortText = this.escapeHtml(prop.text);
+                    const confidence = prop.confidence || 0;
+                    const confidenceScore = confidence; // Use confidence as-is
+                    const confidenceClass = confidence >= 8 ? 'confidence-high' : confidence >= 6 ? 'confidence-medium' : confidence >= 4 ? 'confidence-low' : 'confidence-none';
+                    
+                    // Debug logging
+                    console.log('Confidence:', confidence, 'Score:', confidenceScore, 'Class:', confidenceClass);
+                    return `
+                        <div class="timeline-insight-card">
+                            <div class="timeline-insight-content">
+                                <div class="timeline-insight-text">${shortText}</div>
+                                <div class="timeline-insight-reasoning">
+                                    <strong>Reasoning:</strong> ${this.escapeHtml(prop.reasoning || 'No reasoning provided')}
+                                </div>
+                            </div>
+                            <div class="timeline-insight-meta">
+                                <div class="timeline-insight-timestamp">${timeLabel}</div>
+                                <div class="confidence-badge ${confidenceClass}">
+                                    <i class="fas fa-star"></i>
+                                    Confidence Rating: ${confidenceScore}/10
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         `;
 
-        // Setup click handlers for hour items
-        this.setupTimelineHourHandlers();
+        // Setup click handlers for proposition details
         this.setupTimelinePropositionHandlers();
     }
 
-    /**
-     * Create a single consolidated timeline card with all hours
-     */
-    createConsolidatedTimelineCard(hourGroups) {
-        if (!hourGroups || hourGroups.length === 0) {
-            return '<div class="empty-state">No hours found</div>';
-        }
-
-        const hourEntries = hourGroups.map((hourGroup, index) => {
-            const hour = hourGroup.hour;
-            const hourDisplay = hourGroup.hour_display;
-            const count = hourGroup.proposition_count;
-            
-            return `
-                <div class="timeline-hour-item" data-hour="${hour}" style="animation-delay: ${index * 0.1}s">
-                    <div class="timeline-hour-header" onclick="window.zavionApp?.toggleTimelineHourDetails(${hour})">
-                        <div class="timeline-hour-info">
-                            <h4 class="timeline-hour-title">
-                                <i class="fas fa-clock"></i>
-                                ${hourDisplay}
-                            </h4>
-                            <span class="timeline-hour-count">${count} insights</span>
-                        </div>
-                        <div class="timeline-hour-toggle">
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        // Create details sections for each hour
-        const detailsSections = hourGroups.map(hourGroup => {
-            const hour = hourGroup.hour;
-            const propositions = Array.isArray(hourGroup.propositions) ? [...hourGroup.propositions] : [];
-
-            // Sort propositions by created_at ascending (unknowns last)
-            propositions.sort((a, b) => {
-                const aTime = a?.created_at ? new Date(a.created_at).getTime() : Infinity;
-                const bTime = b?.created_at ? new Date(b.created_at).getTime() : Infinity;
-                return aTime - bTime;
-            });
-
-            return `
-                <div class="timeline-hour-details" id="timeline-hour-${hour}">
-                    <div class="timeline-propositions">
-                        <strong>Individual Insights:</strong>
-                        ${propositions.map(prop => {
-                            const timeLabel = prop?.created_at ? this.formatLocalTime(prop.created_at) : 'Unknown time';
-                            const shortText = this.escapeHtml(prop.text);
-                            const confidence = prop.confidence || 0;
-                            const confidenceClass = confidence >= 80 ? 'confidence-high' : confidence >= 60 ? 'confidence-medium' : confidence >= 40 ? 'confidence-low' : 'confidence-none';
-                            return `
-                                <div class="timeline-proposition-card" onclick="event.stopPropagation(); window.zavionApp?.togglePropositionDetails(${prop.id})">
-                                    <div class="timeline-proposition-header">
-                                        <span class="timeline-proposition-time">${timeLabel}</span>
-                                        <span class="confidence-badge ${confidenceClass}">
-                                            <i class="fas fa-chart-line"></i>
-                                            ${prop.confidence || 'N/A'}% confidence
-                                        </span>
-                                    </div>
-                                    <div class="timeline-proposition-content" id="prop-${prop.id}">
-                                        <div class="proposition-id">#${prop.id}</div>
-                                        <div class="proposition-text">${shortText}</div>
-                                        <span class="click-hint">Click for reasoning</span>
-                                        <div class="proposition-full" style="display: none;">
-                                            <div class="proposition-reasoning">
-                                                <strong>Reasoning:</strong> ${this.escapeHtml(prop.reasoning || 'No reasoning provided')}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        return `
-            ${hourEntries}
-            ${detailsSections}
-        `;
-    }
 
     /**
      * Create a consolidated timeline card with all hours (legacy function for compatibility)
@@ -2058,47 +2148,6 @@ class ZavionApp {
         `;
     }
 
-    /**
-     * Setup click handlers for timeline hour items
-     */
-    setupTimelineHourHandlers() {
-        const hourItems = document.querySelectorAll('.timeline-hour-item');
-        
-        hourItems.forEach(item => {
-            const hour = item.dataset.hour;
-            const details = document.getElementById(`timeline-hour-${hour}`);
-            const toggle = item.querySelector('.timeline-hour-toggle i');
-            
-            if (details && toggle) {
-                // Initially hide details
-                details.style.display = 'none';
-                toggle.classList.remove('fa-chevron-up');
-                toggle.classList.add('fa-chevron-down');
-            }
-        });
-    }
-
-    /**
-     * Toggle timeline hour details visibility
-     */
-    toggleTimelineHourDetails(hour) {
-        const details = document.getElementById(`timeline-hour-${hour}`);
-        const toggle = document.querySelector(`[data-hour="${hour}"] .timeline-hour-toggle i`);
-        
-        if (details && toggle) {
-            const isVisible = details.style.display !== 'none';
-            
-            if (isVisible) {
-                details.style.display = 'none';
-                toggle.classList.remove('fa-chevron-up');
-                toggle.classList.add('fa-chevron-down');
-            } else {
-                details.style.display = 'block';
-                toggle.classList.remove('fa-chevron-down');
-                toggle.classList.add('fa-chevron-up');
-            }
-        }
-    }
 
     /**
      * Display empty timeline state
@@ -2217,6 +2266,17 @@ class ZavionApp {
             return;
         }
 
+        // Collect all observations from all hours and sort by created_at (latest first)
+        const allObservations = [];
+        timelineData.hourly_groups.forEach(hourGroup => {
+            hourGroup.observations.forEach(obs => {
+                allObservations.push(obs);
+            });
+        });
+
+        // Sort by created_at in descending order (latest first)
+        allObservations.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
         // Format date for display - ensure proper timezone handling
         let displayDate;
         try {
@@ -2245,12 +2305,8 @@ class ZavionApp {
                 </h3>
                 <div class="narrative-timeline-stats">
                     <div class="narrative-timeline-stat">
-                        <i class="fas fa-clock"></i>
-                        <span>${timelineData.total_hours} ${timelineData.total_hours === 1 ? 'hour' : 'hours'}</span>
-                    </div>
-                    <div class="narrative-timeline-stat">
                         <i class="fas fa-list-alt"></i>
-                        <span>${timelineData.total_observations} ${timelineData.total_observations === 1 ? 'activity' : 'activities'}</span>
+                        <span>${allObservations.length} ${allObservations.length === 1 ? 'activity' : 'activities'}</span>
                     </div>
                     <div class="narrative-timeline-stat">
                         <i class="fas fa-globe"></i>
@@ -2258,15 +2314,19 @@ class ZavionApp {
                     </div>
                 </div>
             </div>
-            <div class="narrative-timeline-hours">
-                ${timelineData.hourly_groups.map((hourGroup, index) => 
-                    this.createNarrativeTimelineHourItem(hourGroup, index)
-                ).join('')}
+            <div class="narrative-timeline-activities">
+                ${allObservations.map((obs, index) => `
+                    <div class="narrative-timeline-activity">
+                        <div class="narrative-timeline-activity-content">
+                            <p>${this.escapeHtml(this.cleanTranscriptionData(obs.content))}</p>
+                        </div>
+                        <div class="narrative-timeline-activity-timestamp">
+                            ${this.formatLocalTime(obs.created_at)}
+                        </div>
+                    </div>
+                `).join('')}
             </div>
         `;
-
-        // Setup click handlers for expandable hours
-        this.setupNarrativeTimelineHourHandlers();
     }
 
     /**
@@ -2377,93 +2437,6 @@ class ZavionApp {
 
         // Fallback: return a generic description
         return 'Screen activity recorded';
-    }
-
-    /**
-     * Create HTML for a narrative timeline hour item
-     */
-    createNarrativeTimelineHourItem(hourGroup, index) {
-        const hour = hourGroup.hour_display;
-        const observationCount = hourGroup.observation_count;
-        const observations = hourGroup.observations;
-
-        return `
-            <div class="narrative-timeline-hour-item" data-hour="${hourGroup.hour}">
-                <div class="narrative-timeline-hour-header" onclick="window.zavionApp?.toggleNarrativeTimelineHourDetails(${hourGroup.hour})">
-                    <div class="narrative-timeline-hour-info">
-                        <h4 class="narrative-timeline-hour-title">
-                            <i class="fas fa-clock"></i>
-                            ${hour}
-                        </h4>
-                        <span class="narrative-timeline-hour-count">${observationCount} activities</span>
-                    </div>
-                    <div class="narrative-timeline-hour-toggle">
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                </div>
-                <div class="narrative-timeline-hour-details" id="narrative-timeline-hour-${hourGroup.hour}">
-                    <div class="narrative-timeline-observations">
-                        ${observations.map((obs, obsIndex) => `
-                            <div class="narrative-timeline-observation">
-                                <div class="narrative-timeline-observation-content">
-                                    <p>${this.escapeHtml(this.cleanTranscriptionData(obs.content))}</p>
-                                </div>
-                                <div class="narrative-timeline-observation-meta">
-                                    <span class="narrative-timeline-observation-time">
-                                        ${this.formatLocalTime(obs.created_at)}
-                                    </span>
-                                    <span class="narrative-timeline-observation-type">
-                                        ${obs.content_type}
-                                    </span>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * Setup click handlers for narrative timeline hour items
-     */
-    setupNarrativeTimelineHourHandlers() {
-        const hourItems = document.querySelectorAll('.narrative-timeline-hour-item');
-        
-        hourItems.forEach(item => {
-            const hour = item.dataset.hour;
-            const details = document.getElementById(`narrative-timeline-hour-${hour}`);
-            const toggle = item.querySelector('.narrative-timeline-hour-toggle i');
-            
-            if (details && toggle) {
-                // Initially hide details
-                details.style.display = 'none';
-                toggle.classList.remove('fa-chevron-up');
-                toggle.classList.add('fa-chevron-down');
-            }
-        });
-    }
-
-    /**
-     * Toggle narrative timeline hour details visibility
-     */
-    toggleNarrativeTimelineHourDetails(hour) {
-        const details = document.getElementById(`narrative-timeline-hour-${hour}`);
-        const toggle = document.querySelector(`[data-hour="${hour}"] .narrative-timeline-hour-toggle i`);
-        
-        if (details && toggle) {
-            const isVisible = details.style.display !== 'none';
-            
-            if (isVisible) {
-                details.style.display = 'none';
-                toggle.classList.remove('fa-chevron-up');
-                toggle.classList.add('fa-chevron-down');
-            } else {
-                details.style.display = 'block';
-                toggle.classList.remove('fa-chevron-down');
-                toggle.classList.add('fa-chevron-up');
-            }
-        }
     }
 
     /**
@@ -2645,36 +2618,49 @@ class ZavionApp {
         if (!previewContainer) return;
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/suggestions/history?limit=2`);
+            const response = await fetch(`${this.apiBaseUrl}/suggestions/history?limit=4`);
             if (response.ok) {
                 const suggestions = await response.json();
                 
                 if (suggestions.length === 0) {
                     previewContainer.innerHTML = `
-                        <div class="loading-suggestions">No recent suggestions yet. Enable suggestions to see them here!</div>
+                        <div class="cursor-loading">No recent suggestions yet. Enable suggestions to see them here!</div>
                     `;
                     return;
                 }
 
+                // Create file-style suggestions HTML like Cursor's recent projects
                 const suggestionsHTML = suggestions.map(suggestion => {
                     const timeAgo = this.getTimeAgo(new Date(suggestion.created_at));
-                    const suggestionText = suggestion.title || suggestion.description || 'No suggestion text';
+                    
+                    // Map suggestion types to file icons
+                    const getFileIcon = (type) => {
+                        if (type === 'proactive') return 'fas fa-bolt';
+                        if (type === 'behavioral') return 'fas fa-brain';
+                        if (type === 'productivity') return 'fas fa-chart-line';
+                        return 'fas fa-lightbulb';
+                    };
+                    
+                    const suggestionTitle = suggestion.title || suggestion.description || 'AI Suggestion';
+                    const shortTitle = suggestionTitle.length > 30 ? suggestionTitle.substring(0, 30) + '...' : suggestionTitle;
+                    
                     return `
-                        <div class="recent-suggestion-card" onclick="window.zavionApp?.switchTab('suggestions')">
-                            <div class="suggestion-text">${this.escapeHtml(suggestionText.substring(0, 60))}${suggestionText.length > 60 ? '...' : ''}</div>
-                            <div class="suggestion-meta">
-                                <span>${timeAgo}</span>
-                                <span>${suggestion.category || 'General'}</span>
+                        <div class="cursor-suggestion-item" onclick="window.zavionApp?.switchTab('suggestions')">
+                            <div class="cursor-suggestion-icon">
+                                <i class="${getFileIcon(suggestion.type || 'general')}"></i>
                             </div>
+                            <div class="cursor-suggestion-name">${this.escapeHtml(shortTitle)}</div>
+                            <div class="cursor-suggestion-path">${timeAgo}</div>
                         </div>
                     `;
                 }).join('');
 
                 previewContainer.innerHTML = suggestionsHTML;
+                this.refreshIcons();
             }
         } catch (error) {
             console.error('Error loading recent suggestions:', error);
-            previewContainer.innerHTML = `<div class="loading-suggestions">Unable to load recent suggestions</div>`;
+            previewContainer.innerHTML = `<div class="cursor-loading">Unable to load recent suggestions</div>`;
         }
     }
 
@@ -2706,10 +2692,17 @@ class ZavionApp {
                 }
             }
 
-            statsBar.innerHTML = `${totalInsights} insights total • ${lastActiveText}`;
+            statsBar.innerHTML = `
+                <div class="cursor-stats-item">
+                    <strong>${totalInsights}</strong> insights generated
+                </div>
+                <div class="cursor-stats-item">
+                    ${lastActiveText}
+                </div>
+            `;
         } catch (error) {
             console.error('Error loading home stats:', error);
-            statsBar.innerHTML = 'Stats unavailable';
+            statsBar.innerHTML = '<div class="cursor-stats-loading">Stats unavailable</div>';
         }
     }
 
@@ -2869,34 +2862,53 @@ class ZavionApp {
                     border: none !important;
                 }
                 .confidence-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                    padding: 4px 8px;
-                    border-radius: 12px;
-                    font-size: 0.7em;
-                    font-weight: 600;
-                    white-space: nowrap;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    gap: 4px !important;
+                    padding: 4px 8px !important;
+                    border-radius: 12px !important;
+                    font-size: 0.7em !important;
+                    font-weight: 600 !important;
+                    white-space: nowrap !important;
+                    filter: none !important;
+                    -webkit-filter: none !important;
+                    mix-blend-mode: normal !important;
+                    opacity: 1 !important;
                 }
                 .confidence-badge.confidence-high {
-                    background: rgba(16, 185, 129, 0.1);
-                    color: #059669;
-                    border: 1px solid rgba(16, 185, 129, 0.2);
+                    background: rgba(16, 185, 129, 0.15) !important;
+                    background-color: rgba(16, 185, 129, 0.15) !important;
+                    color: #059669 !important;
+                    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+                    box-shadow: 0 0 8px rgba(16, 185, 129, 0.3) !important;
+                    text-shadow: none !important;
+                    transform: none !important;
+                    z-index: 10 !important;
+                    position: relative !important;
                 }
                 .confidence-badge.confidence-medium {
-                    background: rgba(245, 158, 11, 0.1);
-                    color: #d97706;
-                    border: 1px solid rgba(245, 158, 11, 0.2);
+                    background: rgba(245, 158, 11, 0.15) !important;
+                    background-color: rgba(245, 158, 11, 0.15) !important;
+                    color: #d97706 !important;
+                    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+                    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3) !important;
+                    text-shadow: none !important;
                 }
                 .confidence-badge.confidence-low {
-                    background: rgba(239, 68, 68, 0.1);
-                    color: #dc2626;
-                    border: 1px solid rgba(239, 68, 68, 0.2);
+                    background: rgba(239, 68, 68, 0.15) !important;
+                    background-color: rgba(239, 68, 68, 0.15) !important;
+                    color: #dc2626 !important;
+                    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+                    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3) !important;
+                    text-shadow: none !important;
                 }
                 .confidence-badge.confidence-none {
-                    background: rgba(156, 163, 175, 0.1);
-                    color: #6b7280;
-                    border: 1px solid rgba(156, 163, 175, 0.2);
+                    background: rgba(156, 163, 175, 0.15) !important;
+                    background-color: rgba(156, 163, 175, 0.15) !important;
+                    color: #6b7280 !important;
+                    border: 1px solid rgba(156, 163, 175, 0.3) !important;
+                    box-shadow: 0 0 8px rgba(156, 163, 175, 0.2) !important;
+                    text-shadow: none !important;
                 }
 
             `;
@@ -2908,17 +2920,50 @@ class ZavionApp {
      * Toggle proposition details visibility
      */
     togglePropositionDetails(propId) {
-        const propElement = document.getElementById(`prop-${propId}`);
+        // Try to find the element by ID first (for memory tab)
+        let propElement = document.getElementById(`prop-${propId}`);
+        
+        // If not found, look for timeline insight card with the propId in onclick
+        if (!propElement) {
+            const timelineCards = document.querySelectorAll('.timeline-insight-card');
+            for (let card of timelineCards) {
+                if (card.getAttribute('onclick') && card.getAttribute('onclick').includes(propId)) {
+                    propElement = card;
+                    break;
+                }
+            }
+        }
+        
         if (propElement) {
+            // Handle memory tab structure
             const fullDetails = propElement.querySelector('.proposition-full');
             const clickHint = propElement.querySelector('.click-hint');
             
-            if (fullDetails.style.display === 'none') {
-                fullDetails.style.display = 'block';
-                clickHint.textContent = 'Click to hide reasoning';
-            } else {
-                fullDetails.style.display = 'none';
-                clickHint.textContent = 'Click for reasoning';
+            if (fullDetails && clickHint) {
+                if (fullDetails.style.display === 'none') {
+                    fullDetails.style.display = 'block';
+                    clickHint.textContent = 'Click to hide reasoning';
+                } else {
+                    fullDetails.style.display = 'none';
+                    clickHint.textContent = 'Click for reasoning';
+                }
+            }
+            
+            // Handle timeline insight structure
+            const timelineReasoning = propElement.querySelector('.timeline-insight-reasoning');
+            const seeReasoningText = propElement.querySelector('.see-reasoning-text');
+            const chevronIcon = propElement.querySelector('.timeline-insight-action i');
+            
+            if (timelineReasoning) {
+                if (timelineReasoning.style.display === 'none') {
+                    timelineReasoning.style.display = 'block';
+                    if (seeReasoningText) seeReasoningText.textContent = 'Click to hide reasoning';
+                    if (chevronIcon) chevronIcon.className = 'fas fa-chevron-up';
+                } else {
+                    timelineReasoning.style.display = 'none';
+                    if (seeReasoningText) seeReasoningText.textContent = 'Click to see reasoning';
+                    if (chevronIcon) chevronIcon.className = 'fas fa-chevron-down';
+                }
             }
         }
     }

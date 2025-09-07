@@ -7,13 +7,80 @@
     <link rel="stylesheet" href="static/css/styles.css?v=9">
     <link rel="stylesheet" href="static/css/suggestions.css">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Ensure Font Awesome icons are properly displayed */
+        .fas, .far, .fab, .fa {
+            font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 6 Brands" !important;
+            font-weight: 900 !important;
+            font-style: normal !important;
+            font-variant: normal !important;
+            text-rendering: auto !important;
+            line-height: 1 !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+        }
+        
+        .far {
+            font-weight: 400 !important;
+        }
+        
+        .fab {
+            font-weight: 400 !important;
+        }
+        
+        /* Icon sizing for different contexts */
+        .tab-button i {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .cursor-button-icon i {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-primary i,
+        .btn-secondary i,
+        .btn-danger i {
+            font-size: 14px;
+            margin-right: 8px;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+        
+        .activity-icon i {
+            font-size: 18px;
+        }
+        
+        .status-icon i {
+            font-size: 24px;
+        }
+        
+        /* Ensure icons don't break layout */
+        i[class*="fa-"] {
+            display: inline-block;
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- CLI Tracking Toggle (Electron Only) -->
-    <div id="cli-toggle" style="display: none; position: fixed; top: 20px; right: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid #ddd;">
+    <!-- CLI Tracking Toggle (Electron Only) - Moved to bottom right -->
+    <div id="cli-toggle" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid #ddd;">
         <div style="display: flex; align-items: center; gap: 15px;">
             <div>
                 <div style="font-weight: 600; font-size: 14px; color: #333;">Behavior Tracking</div>
@@ -46,7 +113,7 @@
                     </button>
                     <button class="tab-button" id="narrativeTimelineTab" data-tab="narrative-timeline" role="tab" aria-selected="false" aria-controls="narrative-timeline-panel">
                         <i class="fas fa-list-alt"></i>
-                        <span title="Narrative Timeline">Narrative</span>
+                        <span title="Computer History">Computer History</span>
                     </button>
                     <button class="tab-button" data-tab="suggestions" onclick="window.zavionApp?.switchTab('suggestions')">
                         <i class="fas fa-lightbulb"></i>
@@ -64,37 +131,58 @@
         <section class="tabs-content">
             <!-- Home Tab -->
             <div class="tab-panel active" id="home-panel">
-                <!-- Quick Actions -->
-                <div class="home-actions-container">
-                    <div class="home-welcome-header">
-                        <h1 id="dynamic-greeting">Good day! Ready to learn about yourself?</h1>
+                <!-- Cursor-style Home Page -->
+                <div class="cursor-home-container">
+                    <!-- Header Section -->
+                    <div class="cursor-header">
+                        <div class="cursor-logo">
+                            <div class="cursor-logo-icon">Z</div>
+                            <div class="cursor-logo-text">Zavion</div>
+                        </div>
+                        <div class="cursor-settings-link">
+                            <a href="#" onclick="window.zavionApp?.switchTab('settings')">Settings</a>
+                        </div>
                     </div>
-                    
-                    <!-- Recent Suggestions Preview -->
-                    <div class="recent-suggestions-preview" id="recent-suggestions-preview">
-                        <div class="loading-suggestions">Loading recent suggestions...</div>
+
+                    <!-- Main Action Buttons -->
+                    <div class="cursor-actions">
+                        <button class="cursor-action-button" onclick="window.zavionApp?.switchTab('timeline')">
+                            <div class="cursor-button-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="cursor-button-text">View Timeline</div>
+                        </button>
+                        
+                        <button class="cursor-action-button" onclick="window.zavionApp?.switchTab('memory')">
+                            <div class="cursor-button-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <div class="cursor-button-text">Browse Memory</div>
+                        </button>
+                        
+                        <button class="cursor-action-button" onclick="window.zavionApp?.switchTab('narrative-timeline')">
+                            <div class="cursor-button-icon">
+                                <i class="fas fa-list-alt"></i>
+                            </div>
+                            <div class="cursor-button-text">Computer History</div>
+                        </button>
                     </div>
-                    <div class="home-actions-grid">
-                        <button class="home-action-button" onclick="window.zavionApp?.switchTab('timeline')">
-                            <i class="fas fa-clock"></i>
-                            <span class="button-title">View Timeline</span>
-                            <span class="button-subtitle">See your day in review</span>
-                        </button>
-                        <button class="home-action-button" onclick="window.zavionApp?.switchTab('memory')">
-                            <i class="fas fa-brain"></i>
-                            <span class="button-title">Browse Memory</span>
-                            <span class="button-subtitle">Discover trends and patterns</span>
-                        </button>
-                        <button class="home-action-button" onclick="window.zavionApp?.switchTab('narrative-timeline')">
-                            <i class="fas fa-list-alt"></i>
-                            <span class="button-title">Raw Activity</span>
-                            <span class="button-subtitle">Dive into detailed logs</span>
-                        </button>
+
+                    <!-- Recent Suggestions Section -->
+                    <div class="cursor-recent-section">
+                        <div class="cursor-recent-header">
+                            <h3>Recent Suggestions</h3>
+                        </div>
+                        <div class="cursor-recent-content" id="recent-suggestions-preview">
+                            <div class="cursor-loading">Loading recent suggestions...</div>
+                        </div>
                     </div>
-                    
-                    <!-- Subtle Stats Bar -->
-                    <div class="home-stats-bar" id="home-stats-bar">
-                        <span class="stats-loading">Loading stats...</span>
+
+                    <!-- Stats Section -->
+                    <div class="cursor-stats-section">
+                        <div class="cursor-stats-content" id="home-stats-bar">
+                            <span class="cursor-stats-loading">Loading stats...</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -208,17 +296,17 @@
                 </div>
             </div>
 
-            <!-- Narrative Timeline Tab -->
+            <!-- Computer History Tab -->
             <div class="tab-panel" id="narrative-timeline-panel" role="tabpanel" aria-labelledby="narrativeTimelineTab">
                 <div class="card-header">
                     <h2>
                         <i class="fas fa-list-alt"></i>
                         <div class="title-content">
-                            <div class="title-text">Narrative Timeline</div>
-                            <div class="title-subtitle">RAW ACTIVITY DATA</div>
+                            <div class="title-text">Computer History</div>
+                            <div class="title-subtitle">ACTIVITY LOG</div>
                         </div>
                     </h2>
-                    <p>View your raw activities and observations organized by time - see what you actually did each hour</p>
+                    <p>View your computer activity history in chronological order - see what you did and when</p>
                     <div class="header-actions">
                         <div class="filter-group">
                             <label for="narrativeTimelineDate">Date:</label>
@@ -235,8 +323,8 @@
                     <div class="narrative-timeline-content" id="narrativeTimelineContent">
                         <div class="empty-state">
                             <i class="fas fa-list-alt" aria-hidden="true"></i>
-                            <h3>No observations found</h3>
-                            <p>Select a date and click "Load Timeline" to view your raw activities</p>
+                            <h3>No computer history found</h3>
+                            <p>Select a date and click "Load Timeline" to view your computer activity history</p>
                         </div>
                     </div>
                 </div>

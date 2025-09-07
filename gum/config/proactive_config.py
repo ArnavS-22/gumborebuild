@@ -38,7 +38,7 @@ class ProactiveEngineConfig:
     
     # Rate Limiting (separate from Gumbo)
     rate_limit_capacity: int = 3  # Allow burst of 3 suggestions
-    rate_limit_refill_rate: float = 1.0 / 45.0  # 1 token per 45 seconds
+    rate_limit_refill_rate: float = 1.0 / 10.0  # 1 token per 10 seconds
     
     # Feature Flags
     enable_context_parsing: bool = True

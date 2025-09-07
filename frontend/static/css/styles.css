@@ -1,3 +1,32 @@
+/* Global font enforcement - System fonts like Cursor */
+* {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+/* Font Awesome icon overrides */
+.fas, .far, .fab, .fa, i[class*="fa-"] {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 6 Brands" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    text-rendering: auto !important;
+    line-height: 1 !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+.far {
+    font-weight: 400 !important;
+}
+
+.fab {
+    font-weight: 400 !important;
+}
+
+body, html {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
+}
+
 :root {
   /* Modern Glassmorphism Color Palette - Based on Screenshot */
   --bg-primary: #f8fafc;
@@ -408,6 +437,390 @@ body {
 /* Compact icon/text sizing for top nav */
 .main-content.has-top-nav .tab-button i {
     font-size: 14px;
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Enhanced icon styling for all contexts */
+.tab-button i {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.cursor-button-icon i {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-primary i,
+.btn-secondary i,
+.btn-danger i {
+    font-size: 14px;
+    margin-right: 8px;
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ========================================
+   CURSOR-STYLE HOMEPAGE LAYOUT - PIXEL PERFECT REPLICA
+   ======================================== */
+
+/* Main Container - EXACTLY like Cursor */
+.cursor-home-container {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* Header Section - EXACTLY like Cursor */
+.cursor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 48px;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.cursor-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cursor-logo-icon {
+    width: 32px;
+    height: 32px;
+    background: #6b7280;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.cursor-logo-text {
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    letter-spacing: -0.025em;
+}
+
+.cursor-settings-link a {
+    font-size: 14px;
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 400;
+    transition: color 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.cursor-settings-link a:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+/* Main Action Buttons - EXACTLY like Cursor */
+.cursor-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 600px;
+}
+
+.cursor-action-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 20px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 160px;
+    text-decoration: none;
+    color: inherit;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.cursor-action-button:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.cursor-button-icon {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    font-size: 20px;
+    color: #6b7280;
+}
+
+.cursor-action-button:hover .cursor-button-icon {
+    color: #374151;
+}
+
+.cursor-button-text {
+    font-size: 13px;
+    font-weight: 400;
+    color: #374151;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Recent Suggestions Section - EXACTLY like Cursor */
+.cursor-recent-section {
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 24px;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.cursor-recent-header h3 {
+    font-size: 13px;
+    font-weight: 400;
+    color: #9ca3af;
+    margin-bottom: 8px;
+    text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.cursor-recent-content {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    min-height: auto;
+}
+
+.cursor-loading {
+    color: #9ca3af;
+    font-size: 13px;
+    text-align: left;
+    padding: 8px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Stats Section - EXACTLY like Cursor */
+.cursor-stats-section {
+    width: 100%;
+    max-width: 600px;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.cursor-stats-content {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    text-align: left;
+}
+
+.cursor-stats-loading {
+    color: #9ca3af;
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.cursor-stats-item {
+    display: inline-block;
+    margin-right: 24px;
+    font-size: 13px;
+    color: #9ca3af;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.cursor-stats-item strong {
+    color: #111827;
+    font-weight: 600;
+}
+
+/* File-style suggestions - EXACTLY like Cursor */
+.cursor-suggestion-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    border-bottom: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.cursor-suggestion-item:hover {
+    background: transparent;
+    transform: translateX(4px);
+}
+
+.cursor-suggestion-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.cursor-suggestion-name {
+    flex: 1;
+    font-size: 13px;
+    color: #111827;
+    font-weight: 400;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.cursor-suggestion-path {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-left: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .cursor-home-container {
+        padding: 40px 20px;
+        max-width: 100%;
+    }
+    
+    .cursor-header {
+        max-width: calc(100% - 40px);
+        margin-bottom: 32px;
+    }
+    
+    .cursor-logo-text {
+        font-size: 18px;
+    }
+    
+    .cursor-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        margin-bottom: 32px;
+        max-width: calc(100% - 40px);
+    }
+    
+    .cursor-action-button {
+        width: 100%;
+        min-width: auto;
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 12px 16px;
+        gap: 12px;
+    }
+    
+    .cursor-button-icon {
+        width: 24px;
+        height: 24px;
+        font-size: 16px;
+    }
+    
+    .cursor-button-text {
+        text-align: left;
+        font-size: 13px;
+    }
+    
+    .cursor-recent-section {
+        max-width: calc(100% - 40px);
+        margin-bottom: 16px;
+    }
+    
+    .cursor-stats-section {
+        max-width: calc(100% - 40px);
+    }
+}
+
+.empty-state i {
+    font-size: 48px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.activity-icon i {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-icon i {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure all Font Awesome icons are properly displayed */
+i[class*="fa-"] {
+    display: inline-block;
+    text-align: center;
+    vertical-align: middle;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .main-content.has-top-nav .tab-button span {
@@ -2810,12 +3223,16 @@ body.memory-view .tabs-content {
     gap: var(--spacing-xs);
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--border-radius-lg);
-    font-size: var(--font-size-xs);
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
     white-space: nowrap;
     backdrop-filter: var(--backdrop-blur);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    min-width: 90px;
+    justify-content: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .confidence-badge i {
@@ -2824,27 +3241,31 @@ body.memory-view .tabs-content {
 
 /* Confidence Classes */
 .confidence-badge.confidence-none {
-    background: var(--bg-glass);
-    color: var(--text-muted);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(156, 163, 175, 0.2) 0%, rgba(156, 163, 175, 0.1) 100%);
+    color: #6b7280;
+    border: 2px solid rgba(156, 163, 175, 0.4);
+    box-shadow: 0 4px 12px rgba(156, 163, 175, 0.2), 0 0 25px rgba(156, 163, 175, 0.3);
 }
 
 .confidence-badge.confidence-low {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
-    color: var(--error-color);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(239, 68, 68, 0.15) 100%);
+    color: #dc2626;
+    border: 2px solid rgba(239, 68, 68, 0.5);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3), 0 0 25px rgba(239, 68, 68, 0.4);
 }
 
 .confidence-badge.confidence-medium {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
-    color: var(--warning-color);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.15) 100%);
+    color: #d97706;
+    border: 2px solid rgba(245, 158, 11, 0.5);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3), 0 0 25px rgba(245, 158, 11, 0.4);
 }
 
 .confidence-badge.confidence-high {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
-    color: var(--success-color);
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0.15) 100%);
+    color: #059669;
+    border: 2px solid rgba(16, 185, 129, 0.5);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3), 0 0 25px rgba(16, 185, 129, 0.4);
 }
 
 /* Proposition Content */
@@ -2871,6 +3292,70 @@ body.memory-view .tabs-content {
     font-weight: 600;
     margin-bottom: var(--spacing-xs);
     display: block;
+}
+
+/* Timeline Insight Cards */
+.timeline-insight-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.timeline-insight-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.timeline-insight-content {
+    margin-bottom: 12px;
+}
+
+.timeline-insight-text {
+    color: #374151;
+    font-size: 0.9em;
+    line-height: 1.5;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.timeline-insight-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.timeline-insight-timestamp {
+    font-size: 0.75em;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* Timeline Insight Reasoning */
+.timeline-insight-reasoning {
+    background: rgba(139, 92, 246, 0.05);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    margin-top: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    border-left: 3px solid #8b5cf6;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+}
+
+.timeline-insight-reasoning strong {
+    color: #8b5cf6;
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+    display: block;
+    font-size: var(--font-size-sm);
 }
 
 /* Proposition Footer */
@@ -56876,5 +57361,199 @@ body.memory-view .tabs-content {
 
 
 
+
+
+
+/* Updated Narrative Timeline - Chronological Order */
+.narrative-timeline-activities {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.narrative-timeline-activity {
+    background: #ffffff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.narrative-timeline-activity:hover {
+    border-color: #0066cc;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+}
+
+.narrative-timeline-activity-content {
+    margin-bottom: 8px;
+}
+
+.narrative-timeline-activity-content p {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.narrative-timeline-activity-timestamp {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: right;
+}
+
+/* Remove old hour-based styles that are no longer needed */
+.narrative-timeline-hours {
+    display: none;
+}
+
+.narrative-timeline-hour-item {
+    display: none;
+}
+
+
+/* Updated Timeline View - Chronological Order */
+.timeline-insights {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.timeline-insight-card {
+    background: #ffffff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.timeline-insight-card:hover {
+    border-color: #0066cc;
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.1);
+    transform: translateY(-1px);
+}
+
+.timeline-insight-content {
+    margin-bottom: 12px;
+}
+
+.timeline-insight-text {
+    color: #1a1a1a;
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    word-wrap: break-word;
+}
+
+.timeline-insight-reasoning {
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f1f3f4;
+}
+
+.timeline-insight-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.timeline-insight-timestamp {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+
+/* Hide old hour-based styles */
+.timeline-hours {
+    display: none;
+}
+
+.timeline-hour-item {
+    display: none;
+}
+
+
+
+/* Timeline Insight Cards */
+.timeline-insight-card {
+    background: #ffffff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.timeline-insight-card:hover {
+    border-color: #0066cc;
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.1);
+    transform: translateY(-1px);
+}
+
+.timeline-insight-card::after {
+    content: "Click to see reasoning";
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #f8f9ff;
+    color: #0066cc;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.timeline-insight-card:hover::after {
+    opacity: 1;
+}
+
+.timeline-insight-content {
+    margin-bottom: 12px;
+}
+
+.timeline-insight-text {
+    color: #1a1a1a;
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    word-wrap: break-word;
+}
+
+.timeline-insight-reasoning {
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f3f4;
+    background: #f8f9ff;
+    padding: 12px;
+    border-radius: 6px;
+}
+
+.timeline-insight-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.timeline-insight-timestamp {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 500;
+}
 
 
