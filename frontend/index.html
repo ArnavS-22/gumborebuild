@@ -67,7 +67,7 @@
                 <!-- Quick Actions -->
                 <div class="home-actions-container">
                     <div class="home-welcome-header">
-                        <h1 id="dynamic-greeting">Good day, Arnav! Ready to learn about yourself?</h1>
+                        <h1 id="dynamic-greeting">Good day! Ready to learn about yourself?</h1>
                     </div>
                     
                     <!-- Recent Suggestions Preview -->
@@ -293,6 +293,14 @@
                             </div>
                             <i class="fas fa-chevron-right"></i>
                         </button>
+                        <button class="settings-option-button" onclick="window.zavionApp?.clearAllCaches()">
+                            <i class="fas fa-broom"></i>
+                            <div class="option-content">
+                                <div class="option-title">Clear All Caches</div>
+                                <div class="option-description">Clear cached data and reset app state</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -300,51 +308,69 @@
             <!-- Memory Tab (Insights without navigation) -->
             <div class="tab-panel" id="memory-panel" role="tabpanel" aria-labelledby="memoryTab">
                 <div class="memory-header">
-                    <button class="back-button" onclick="window.zavionApp?.switchTab('settings')">
-                        <i class="fas fa-arrow-left"></i>
-                        Back to Settings
-                    </button>
-                    <h2>
-                        <i class="fas fa-brain"></i>
-                        <div class="title-content">
-                            <div class="title-text">Memory</div>
-                            <div class="title-subtitle">BEHAVIORAL INSIGHTS</div>
+                    <div class="memory-header-top">
+                        <div class="memory-header-left">
+                            <button class="back-button" onclick="window.zavionApp?.switchTab('settings')">
+                                <i class="fas fa-arrow-left"></i>
+                                Back to Settings
+                            </button>
+                            <div class="memory-title-section">
+                                <h2>
+                                    <i class="fas fa-brain"></i>
+                                    <div class="title-content">
+                                        <div class="title-text">Memory</div>
+                                        <div class="title-subtitle">BEHAVIORAL INSIGHTS</div>
+                                    </div>
+                                </h2>
+                                <p>Your behavioral patterns and insights</p>
+                            </div>
                         </div>
-                    </h2>
-                    <p>Your behavioral patterns and insights</p>
+                        <div class="memory-header-right">
+                            <div class="behavior-tracking-card">
+                                <div class="behavior-tracking-info">
+                                    <div class="behavior-tracking-label">Behavior Tracking</div>
+                                    <div class="behavior-tracking-status">Stopped</div>
+                                </div>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="behaviorToggle" class="toggle-input">
+                                    <label for="behaviorToggle" class="toggle-label">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="memory-controls">
+                        <div class="filter-group">
+                            <label for="memoryConfidenceFilter">Min Confidence:</label>
+                            <select id="memoryConfidenceFilter">
+                                <option value="">All</option>
+                                <option value="5">5+</option>
+                                <option value="7">7+</option>
+                                <option value="8">8+</option>
+                                <option value="9">9+</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="memorySortBy">Sort by:</label>
+                            <select id="memorySortBy">
+                                <option value="created_at">Most Recent</option>
+                                <option value="confidence">Confidence</option>
+                            </select>
+                        </div>
+                        <button class="btn-secondary" id="loadMemoryPropositions">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            Load Insights
+                        </button>
+                        <button class="btn-danger" id="cleanupMemoryDatabase">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                            Clean Database
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="memory-content">
-                    <!-- This will contain the same content as insights panel but without navigation -->
-                    <div class="card-header">
-                        <div class="header-actions">
-                            <div class="filter-group">
-                                <label for="memoryConfidenceFilter">Min Confidence:</label>
-                                <select id="memoryConfidenceFilter">
-                                    <option value="">All</option>
-                                    <option value="5">5+</option>
-                                    <option value="7">7+</option>
-                                    <option value="8">8+</option>
-                                    <option value="9">9+</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="memorySortBy">Sort by:</label>
-                                <select id="memorySortBy">
-                                    <option value="created_at">Most Recent</option>
-                                    <option value="confidence">Confidence</option>
-                                </select>
-                            </div>
-                            <button class="btn-secondary" id="loadMemoryPropositions">
-                                <i class="fas fa-search" aria-hidden="true"></i>
-                                Load Insights
-                            </button>
-                            <button class="btn-danger" id="cleanupMemoryDatabase">
-                                <i class="fas fa-trash" aria-hidden="true"></i>
-                                Clean Database
-                            </button>
-                        </div>
-                    </div>
                     
                     <div class="propositions-stats" id="memoryPropositionsStats" style="display: none;">
                         <!-- Stats will be populated here -->

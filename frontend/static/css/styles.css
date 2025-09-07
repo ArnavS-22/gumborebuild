@@ -603,8 +603,8 @@ body {
 .proposition-card {
     width: 100%;
     max-width: none;
-    margin: 0 0 var(--spacing-lg) 0;
-    padding: var(--spacing-xl);
+    margin: 0 0 var(--spacing-md) 0;
+    padding: var(--spacing-lg);
     background: var(--bg-card);
     border-radius: var(--border-radius-lg);
     border: 1px solid var(--border-color);
@@ -2232,63 +2232,12 @@ button:not(.tab-button):not(.no-shine) i {
     z-index: 2;
 }
 
-/* Home Action Button - Using Toast Glass Effect */
-.home-action-button {
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: var(--border-radius) !important;
-    backdrop-filter: var(--backdrop-blur) !important;
-    box-shadow: var(--shadow-md) !important;
-    transition: all var(--transition-base) !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: var(--spacing-sm) !important;
-    padding: var(--spacing-sm) var(--spacing-lg) !important;
-    font-size: var(--font-size-sm) !important;
-    font-weight: 500 !important;
-    font-family: var(--font-family-primary) !important;
-    cursor: pointer !important;
-    text-decoration: none !important;
-    color: var(--text-primary) !important;
-}
-
+/* Home Action Button - Blue transparency hover like toast notifications */
 .home-action-button:hover {
-    background: var(--bg-hover) !important;
-    border-color: var(--brand-primary) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: var(--shadow-lg) !important;
-}
-
-/* Recent Suggestions Preview - Using Toast Glass Effect */
-.recent-suggestions-preview {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
-    margin-bottom: var(--spacing-xl);
-    backdrop-filter: var(--backdrop-blur);
+    background-color: rgba(var(--brand-cyan-rgb), 0.1) !important;
+    border-color: var(--brand-cyan);
+    transform: translateY(-1px);
     box-shadow: var(--shadow-md);
-    transition: all var(--transition-base);
-}
-
-/* Home Stats Bar - Using Toast Glass Effect */
-.home-stats-bar {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
-    margin-top: var(--spacing-xl);
-    backdrop-filter: var(--backdrop-blur);
-    box-shadow: var(--shadow-md);
-    transition: all var(--transition-base);
-}
-
-/* Home Actions Grid - Using Toast Glass Effect */
-.home-actions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--spacing-lg);
-    margin: var(--spacing-xl) 0;
 }
 
 /* Subtle glow effect on focus/active */
@@ -2486,7 +2435,7 @@ button:not(.tab-button):not(.no-shine) i {
 .proposition-card:nth-child(2) { animation-delay: 0.2s; }
 .proposition-card:nth-child(3) { animation-delay: 0.3s; }
 
-/* Settings Tab Styles - Using Toast Glass Effect */
+/* Settings Tab Styles */
 .settings-content {
     padding: var(--spacing-lg);
 }
@@ -2502,10 +2451,9 @@ button:not(.tab-button):not(.no-shine) i {
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-md);
-    background: var(--bg-card);
+    background: var(--bg-glass);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: left;
@@ -2515,14 +2463,14 @@ button:not(.tab-button):not(.no-shine) i {
 
 .settings-option-button:hover {
     background: var(--bg-hover);
-    border-color: var(--brand-primary);
+    border-color: var(--primary-color);
     transform: translateY(-1px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-md);
 }
 
 .settings-option-button i:first-child {
     font-size: 1.2rem;
-    color: var(--brand-primary);
+    color: var(--primary-color);
     width: 20px;
     text-align: center;
 }
@@ -2548,17 +2496,134 @@ button:not(.tab-button):not(.no-shine) i {
     font-size: 0.8rem;
 }
 
-/* Memory Tab Styles - Using Toast Glass Effect */
+/* Memory Tab Styles */
 .memory-header {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.memory-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+}
+
+.memory-header-left {
     display: flex;
     align-items: center;
     gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-xl);
-    padding: var(--spacing-lg);
-    background: var(--bg-card);
+}
+
+.memory-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.memory-title-section {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.memory-title-section h2 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.memory-title-section p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.behavior-tracking-card {
+    background: var(--bg-hover);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
+    padding: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    min-width: 200px;
+}
+
+.behavior-tracking-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.behavior-tracking-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.behavior-tracking-status {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.memory-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+}
+
+.toggle-input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-label {
+    display: block;
+    width: 50px;
+    height: 26px;
+    background-color: #ccc;
+    border-radius: 13px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    transition: left 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-input:checked + .toggle-label {
+    background-color: var(--primary-color);
+}
+
+.toggle-input:checked + .toggle-label .toggle-slider {
+    left: 27px;
 }
 
 .back-button {
@@ -2566,10 +2631,9 @@ button:not(.tab-button):not(.no-shine) i {
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--bg-card);
+    background: var(--bg-glass);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
     color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -2578,59 +2642,13 @@ button:not(.tab-button):not(.no-shine) i {
 
 .back-button:hover {
     background: var(--bg-hover);
-    border-color: var(--brand-primary);
-    color: var(--brand-primary);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 .memory-content {
     /* Full width content without navigation constraints */
     width: 100%;
-}
-
-/* Memory Content Cards - Using Toast Glass Effect */
-.memory-content .card-header {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
-    margin-bottom: var(--spacing-lg);
-    backdrop-filter: var(--backdrop-blur);
-    box-shadow: var(--shadow-md);
-    transition: all var(--transition-base);
-}
-
-.memory-content .propositions-content {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
-    backdrop-filter: var(--backdrop-blur);
-    box-shadow: var(--shadow-md);
-    transition: all var(--transition-base);
-}
-
-.memory-content .propositions-stats {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
-    margin-bottom: var(--spacing-lg);
-    backdrop-filter: var(--backdrop-blur);
-    box-shadow: var(--shadow-md);
-    transition: all var(--transition-base);
-}
-
-.memory-content .pagination-controls {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
-    margin-top: var(--spacing-lg);
-    backdrop-filter: var(--backdrop-blur);
-    box-shadow: var(--shadow-md);
-    transition: all var(--transition-base);
 }
 
 .memory-content .card-header {
@@ -2725,8 +2743,8 @@ body.memory-view .tabs-content {
     background: var(--bg-glass);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-xl);
-    padding: var(--spacing-xl);
-    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
     transition: all var(--transition-bounce);
     animation: slideInUp 0.3s ease-out;
     box-shadow: var(--shadow-glass);
@@ -3570,29 +3588,59 @@ body.memory-view .tabs-content {
     gap: var(--spacing-md);
 }
 
+/* Timeline hour items - similar to narrative timeline */
 .timeline-hour-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--spacing-md);
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    transition: all var(--transition-base);
-    cursor: pointer;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    transition: var(--transition-base);
+    margin-bottom: var(--spacing-md);
 }
 
 .timeline-hour-item:hover {
-    background: var(--bg-hover);
     border-color: var(--brand-cyan);
-    transform: translateY(-1px);
     box-shadow: var(--shadow-md);
+}
+
+.timeline-hour-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.timeline-hour-header:hover {
+    background: var(--bg-hover);
+}
+
+.timeline-hour-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.timeline-hour-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.timeline-hour-title i {
+    color: var(--brand-cyan);
 }
 
 .timeline-hour-left {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
+    flex: 1;
 }
 
 .timeline-hour-bullet {
@@ -3611,68 +3659,74 @@ body.memory-view .tabs-content {
 }
 
 .timeline-hour-count {
-    font-size: var(--font-size-sm);
     color: var(--text-secondary);
-    background: var(--bg-secondary);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
-}
-
-.timeline-hour-button {
-    background: var(--brand-cyan);
-    color: white;
-    border: none;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--border-radius);
     font-size: var(--font-size-sm);
     font-weight: 500;
-    cursor: pointer;
+}
+
+.timeline-hour-toggle {
+    color: var(--text-secondary);
+    transition: var(--transition-base);
+}
+
+.timeline-hour-toggle i {
+    font-size: var(--font-size-sm);
+}
+
+/* Integrated insights action - no separate button */
+.timeline-hour-action {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--brand-cyan);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    opacity: 0.8;
     transition: all var(--transition-base);
 }
 
-.timeline-hour-button:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
+.timeline-hour-entry:hover .timeline-hour-action {
+    opacity: 1;
+    color: var(--primary-dark);
 }
 
-.timeline-hour-button:disabled {
-    background: var(--text-muted);
-    cursor: not-allowed;
-    transform: none;
+.timeline-hour-action i {
+    font-size: var(--font-size-xs);
+    transition: transform var(--transition-base);
 }
 
-.timeline-hour-details {
-    margin-top: var(--spacing-md);
-    padding: var(--spacing-md);
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
+.timeline-hour-entry:hover .timeline-hour-action i {
+    transform: translateX(2px);
+}
+
+/* Hide old button - no longer needed */
+.timeline-hour-button {
     display: none;
 }
 
-.timeline-hour-details.show {
-    display: block;
-    animation: fadeIn 0.3s ease;
+.timeline-hour-details {
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+    padding: var(--spacing-lg);
 }
 
 .timeline-propositions {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
 }
 
 .timeline-proposition {
-    padding: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
     background: var(--bg-card);
     border: 1px solid var(--border-light);
     border-radius: var(--border-radius);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
     color: var(--text-secondary);
     display: grid;
-    grid-template-columns: 120px 1fr;
+    grid-template-columns: 100px 1fr;
     align-items: start;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
 }
 
 .timeline-proposition strong {
@@ -3742,17 +3796,25 @@ body.memory-view .tabs-content {
     }
     
     .timeline-hour-item {
+        padding: var(--spacing-sm);
+    }
+    
+    .timeline-hour-entry {
         flex-direction: column;
         gap: var(--spacing-sm);
         align-items: flex-start;
+        text-align: left;
+        padding: var(--spacing-sm);
     }
     
     .timeline-hour-left {
         width: 100%;
+        justify-content: space-between;
     }
     
-    .timeline-hour-button {
+    .timeline-hour-action {
         align-self: flex-end;
+        margin-top: var(--spacing-xs);
     }
 }
 

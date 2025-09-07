@@ -13,7 +13,7 @@
 .suggestions-grid {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-sm);
     padding: 0;
 }
 
@@ -23,9 +23,10 @@
     backdrop-filter: var(--backdrop-blur);
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
-    padding: var(--spacing-xl);
+    padding: var(--spacing-md);
     transition: var(--transition-base);
     box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-sm);
 }
 
 .suggestion-card:hover {
@@ -37,17 +38,17 @@
 /* Card Content - using app's typography system */
 .suggestion-title {
     color: var(--text-primary);
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-lg);
     font-weight: 600;
-    margin: 0 0 var(--spacing-md) 0;
-    line-height: 1.4;
+    margin: 0 0 var(--spacing-sm) 0;
+    line-height: 1.3;
 }
 
 .suggestion-description {
     color: var(--text-secondary);
-    font-size: var(--font-size-base);
-    line-height: 1.6;
-    margin-bottom: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    margin-bottom: var(--spacing-md);
 }
 
 
@@ -131,12 +132,12 @@
 .suggestions-list {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-sm);
 }
 
 /* Suggestion Card Header (inside cards) */
 .suggestion-card .suggestion-header {
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
 }
 
 .suggestion-card .suggestion-meta {
@@ -173,14 +174,14 @@
 /* Suggestion Details Sections */
 .suggestion-reasoning,
 .utility-scores {
-    margin-top: var(--spacing-md);
-    padding-top: var(--spacing-md);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
     border-top: 1px solid var(--border-light);
 }
 
 /* Suggestion Actions Spacing */
 .suggestion-actions {
-    margin-top: var(--spacing-lg);
+    margin-top: var(--spacing-md);
 }
 
 .suggestion-reasoning details,
@@ -327,9 +328,6 @@
 }
 
 /* Standard app animations - no custom animations needed */
-.suggestion-card {
-    /* Uses standard transition from var(--transition-base) */
-}
 
 /* Dark Mode Support - inherits from CSS variables */
 [data-theme="dark"] .suggestion-card {

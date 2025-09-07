@@ -156,7 +156,7 @@ async function startCliTracking() {
     const cliWorkingDir = path.join(__dirname, '..', '..'); // Go up to gum root directory
     
     // Spawn CLI process with correct working directory
-    cliProcess = spawn(`${getPythonPath()} -m gum.cli --user-name "Arnav Sharma" --model gpt-4o-mini`, {
+    cliProcess = spawn(`${getPythonPath()} -m gum.cli --user-name "${process.env.USER_NAME || 'User'}" --model gpt-4o-mini`, {
       stdio: ['pipe', 'pipe', 'pipe'],
       detached: false,
       shell: true,

@@ -557,7 +557,8 @@ class ZavionApp {
             return;
         }
 
-        const cleanupBtn = document.getElementById('cleanupDatabase');
+        // Find the cleanup button (could be in settings or memory tab)
+        const cleanupBtn = document.getElementById('cleanupDatabase') || document.getElementById('cleanupMemoryDatabase');
         if (cleanupBtn) {
             cleanupBtn.disabled = true;
             cleanupBtn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Cleaning...';
@@ -1183,6 +1184,12 @@ class ZavionApp {
                 this.currentMemoryPage++;
                 this.loadMemoryPropositions();
             });
+        }
+
+        // Memory tab database cleanup button
+        const cleanupMemoryDatabase = document.getElementById('cleanupMemoryDatabase');
+        if (cleanupMemoryDatabase) {
+            cleanupMemoryDatabase.addEventListener('click', () => this.handleDatabaseCleanup());
         }
     }
 
@@ -1871,9 +1878,7 @@ class ZavionApp {
                 </div>
             </div>
             <div class="timeline-hours">
-                ${timelineData.hourly_groups.map((hourGroup, index) => 
-                    this.createTimelineHourItem(hourGroup, index)
-                ).join('')}
+                ${this.createConsolidatedTimelineCard(timelineData.hourly_groups)}
             </div>
         `;
 
@@ -1883,31 +1888,49 @@ class ZavionApp {
     }
 
     /**
-     * Create a timeline hour item HTML
+     * Create a single consolidated timeline card with all hours
      */
-    createTimelineHourItem(hourGroup, index) {
-        const hour = hourGroup.hour;
-        const hourDisplay = hourGroup.hour_display;
-        const count = hourGroup.proposition_count;
-        const propositions = Array.isArray(hourGroup.propositions) ? [...hourGroup.propositions] : [];
+    createConsolidatedTimelineCard(hourGroups) {
+        if (!hourGroups || hourGroups.length === 0) {
+            return '<div class="empty-state">No hours found</div>';
+        }
 
-        // Sort propositions by created_at ascending (unknowns last)
-        propositions.sort((a, b) => {
-            const aTime = a?.created_at ? new Date(a.created_at).getTime() : Infinity;
-            const bTime = b?.created_at ? new Date(b.created_at).getTime() : Infinity;
-            return aTime - bTime;
-        });
-
-        return `
-            <div class="timeline-hour-item" data-hour="${hour}" style="animation-delay: ${index * 0.1}s">
-                <div class="timeline-hour-left">
-                    <div class="timeline-hour-bullet"></div>
-                    <div class="timeline-hour-time">${hourDisplay}</div>
-                    <div class="timeline-hour-count">${count} insights</div>
+        const hourEntries = hourGroups.map((hourGroup, index) => {
+            const hour = hourGroup.hour;
+            const hourDisplay = hourGroup.hour_display;
+            const count = hourGroup.proposition_count;
+            
+            return `
+                <div class="timeline-hour-item" data-hour="${hour}" style="animation-delay: ${index * 0.1}s">
+                    <div class="timeline-hour-header" onclick="window.zavionApp?.toggleTimelineHourDetails(${hour})">
+                        <div class="timeline-hour-info">
+                            <h4 class="timeline-hour-title">
+                                <i class="fas fa-clock"></i>
+                                ${hourDisplay}
+                            </h4>
+                            <span class="timeline-hour-count">${count} insights</span>
+                        </div>
+                        <div class="timeline-hour-toggle">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
                 </div>
-                <button class="timeline-hour-button" data-hour="${hour}">
-                    See Insights
-                </button>
+            `;
+        }).join('');
+
+        // Create details sections for each hour
+        const detailsSections = hourGroups.map(hourGroup => {
+            const hour = hourGroup.hour;
+            const propositions = Array.isArray(hourGroup.propositions) ? [...hourGroup.propositions] : [];
+
+            // Sort propositions by created_at ascending (unknowns last)
+            propositions.sort((a, b) => {
+                const aTime = a?.created_at ? new Date(a.created_at).getTime() : Infinity;
+                const bTime = b?.created_at ? new Date(b.created_at).getTime() : Infinity;
+                return aTime - bTime;
+            });
+
+            return `
                 <div class="timeline-hour-details" id="timeline-hour-${hour}">
                     <div class="timeline-propositions">
                         <strong>Individual Insights:</strong>
@@ -1940,6 +1963,97 @@ class ZavionApp {
                         }).join('')}
                     </div>
                 </div>
+            `;
+        }).join('');
+
+        return `
+            ${hourEntries}
+            ${detailsSections}
+        `;
+    }
+
+    /**
+     * Create a consolidated timeline card with all hours (legacy function for compatibility)
+     */
+    createTimelineHourItem(hourGroups, index) {
+        // If hourGroups is a single hour group, wrap it in an array
+        const groups = Array.isArray(hourGroups) ? hourGroups : [hourGroups];
+        
+        const hourEntries = groups.map((hourGroup, groupIndex) => {
+            const hour = hourGroup.hour;
+            const hourDisplay = hourGroup.hour_display;
+            const count = hourGroup.proposition_count;
+            
+            return `
+                <div class="timeline-hour-entry" data-hour="${hour}" style="animation-delay: ${(index * 0.1) + (groupIndex * 0.05)}s">
+                    <div class="timeline-hour-left">
+                        <div class="timeline-hour-bullet"></div>
+                        <div class="timeline-hour-time">${hourDisplay}</div>
+                        <div class="timeline-hour-count">${count} insights</div>
+                    </div>
+                    <div class="timeline-hour-action">
+                        <span>See Insights</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Create details sections for each hour
+        const detailsSections = groups.map(hourGroup => {
+            const hour = hourGroup.hour;
+            const propositions = Array.isArray(hourGroup.propositions) ? [...hourGroup.propositions] : [];
+
+            // Sort propositions by created_at ascending (unknowns last)
+            propositions.sort((a, b) => {
+                const aTime = a?.created_at ? new Date(a.created_at).getTime() : Infinity;
+                const bTime = b?.created_at ? new Date(b.created_at).getTime() : Infinity;
+                return aTime - bTime;
+            });
+
+            return `
+                <div class="timeline-hour-details" id="timeline-hour-${hour}">
+                    <div class="timeline-propositions">
+                        <strong>Individual Insights:</strong>
+                        ${propositions.map(prop => {
+                            const timeLabel = prop?.created_at ? this.formatLocalTime(prop.created_at) : 'Unknown time';
+                            const shortText = this.escapeHtml(prop.text);
+                            const confidence = prop.confidence || 0;
+                            const confidenceClass = confidence >= 80 ? 'confidence-high' : confidence >= 60 ? 'confidence-medium' : confidence >= 40 ? 'confidence-low' : 'confidence-none';
+                            return `
+                                <div class="timeline-proposition-card" onclick="event.stopPropagation(); window.zavionApp?.togglePropositionDetails(${prop.id})">
+                                    <div class="timeline-proposition-header">
+                                        <span class="timeline-proposition-time">${timeLabel}</span>
+                                        <span class="confidence-badge ${confidenceClass}">
+                                            <i class="fas fa-chart-line"></i>
+                                            ${prop.confidence || 'N/A'}% confidence
+                                        </span>
+                                    </div>
+                                    <div class="timeline-proposition-content" id="prop-${prop.id}">
+                                        <div class="proposition-id">#${prop.id}</div>
+                                        <div class="proposition-text">${shortText}</div>
+                                        <span class="click-hint">Click for reasoning</span>
+                                        <div class="proposition-full" style="display: none;">
+                                            <div class="proposition-reasoning">
+                                                <strong>Reasoning:</strong> ${this.escapeHtml(prop.reasoning || 'No reasoning provided')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="timeline-hour-item" style="animation-delay: ${index * 0.1}s">
+                <div class="timeline-hour-entries">
+                    ${hourEntries}
+                </div>
+                ${detailsSections}
             </div>
         `;
     }
@@ -1949,26 +2063,18 @@ class ZavionApp {
      */
     setupTimelineHourHandlers() {
         const hourItems = document.querySelectorAll('.timeline-hour-item');
-        const hourButtons = document.querySelectorAll('.timeline-hour-button');
-
+        
         hourItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                // Don't trigger if clicking on the button
-                if (e.target.classList.contains('timeline-hour-button')) {
-                    return;
-                }
-                
-                const hour = item.getAttribute('data-hour');
-                this.toggleTimelineHourDetails(hour);
-            });
-        });
-
-        hourButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent item click
-                const hour = button.getAttribute('data-hour');
-                this.toggleTimelineHourDetails(hour);
-            });
+            const hour = item.dataset.hour;
+            const details = document.getElementById(`timeline-hour-${hour}`);
+            const toggle = item.querySelector('.timeline-hour-toggle i');
+            
+            if (details && toggle) {
+                // Initially hide details
+                details.style.display = 'none';
+                toggle.classList.remove('fa-chevron-up');
+                toggle.classList.add('fa-chevron-down');
+            }
         });
     }
 
@@ -1976,22 +2082,20 @@ class ZavionApp {
      * Toggle timeline hour details visibility
      */
     toggleTimelineHourDetails(hour) {
-        const detailsElement = document.getElementById(`timeline-hour-${hour}`);
-        const button = document.querySelector(`[data-hour="${hour}"].timeline-hour-button`);
+        const details = document.getElementById(`timeline-hour-${hour}`);
+        const toggle = document.querySelector(`[data-hour="${hour}"] .timeline-hour-toggle i`);
         
-        if (!detailsElement) return;
-
-        const isVisible = detailsElement.classList.contains('show');
-        
-        if (isVisible) {
-            detailsElement.classList.remove('show');
-            if (button) {
-                button.textContent = 'See Insights';
-            }
-        } else {
-            detailsElement.classList.add('show');
-            if (button) {
-                button.textContent = 'Hide Insights';
+        if (details && toggle) {
+            const isVisible = details.style.display !== 'none';
+            
+            if (isVisible) {
+                details.style.display = 'none';
+                toggle.classList.remove('fa-chevron-up');
+                toggle.classList.add('fa-chevron-down');
+            } else {
+                details.style.display = 'block';
+                toggle.classList.remove('fa-chevron-down');
+                toggle.classList.add('fa-chevron-up');
             }
         }
     }
@@ -2530,7 +2634,7 @@ class ZavionApp {
             timeOfDay = 'evening';
         }
 
-        greetingElement.textContent = `Good ${timeOfDay}, Arnav! Ready to learn about yourself?`;
+        greetingElement.textContent = `Good ${timeOfDay}! Ready to learn about yourself?`;
     }
 
     /**
@@ -3235,6 +3339,31 @@ class ZavionApp {
             // Reload suggestions to show new proactive ones
             this.loadAllSuggestions();
         }
+    }
+
+    /**
+     * Clear all caches and reset the app state
+     */
+    clearAllCaches() {
+        // Clear suggestions cache
+        if (this.suggestionPolling) {
+            this.suggestionPolling.suggestionsCache.clear();
+        }
+        
+        // Clear any other caches
+        if (this.timelineCache) {
+            this.timelineCache.clear();
+        }
+        
+        // Clear localStorage theme cache (keep theme setting)
+        const theme = localStorage.getItem('gum-theme');
+        localStorage.clear();
+        if (theme) {
+            localStorage.setItem('gum-theme', theme);
+        }
+        
+        console.log('🧹 All caches cleared');
+        this.showToast('All caches cleared!', 'success');
     }
 
     /**
@@ -4057,4 +4186,5 @@ const additionalCSS = `
 const style = document.createElement('style');
 style.textContent = additionalCSS;
 document.head.appendChild(style);
+
 
