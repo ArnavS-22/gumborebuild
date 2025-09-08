@@ -62,6 +62,76 @@ from unified_ai_client import get_unified_client
 
 logger = logging.getLogger(__name__)
 
+# CAPABILITY REASONING PROMPT - Determines what AI can execute vs suggest
+CAPABILITY_REASONING_PROMPT = """You are an AI assistant that can perform some tasks autonomously and suggest others to the user.
+
+YOUR CAPABILITIES:
+- ANY text generation: emails, messages, responses, rewrites, summaries, outlines, drafts, captions, posts, comments, scripts, letters, proposals, reports, etc.
+- Data synthesis: research compilation, comparisons, analysis, organizing information, deck building guides, strategy recommendations
+- Content creation: documents, notes, agendas, plans, lists, tables, structured output, game strategies, optimal configurations
+- Text transformation: rewriting, improving, translating, formatting, editing
+
+YOU CANNOT:
+- Click, send, or confirm actions in external apps (games, email clients, browsers, messaging apps)
+- Access or modify user's private environment (folders, files, configs, game interfaces)
+- Make irreversible changes on behalf of the user
+- Control user interfaces or navigate apps
+- Actually send messages/emails (only draft them)
+
+REASONING FRAMEWORK:
+For every opportunity you identify, ask yourself:
+1. Can I fully complete this task end-to-end with my current abilities?
+2. If YES → Execute it autonomously 
+3. If NO → Suggest the best next step and state what the human must do
+
+TRANSCRIPTION DATA ANALYSIS:
+{parsed_transcription}
+
+CONTEXT EXTRACTION:
+Current Application: {current_app}
+Active Window/Document: {active_window}
+Specific Content/Text: {visible_content}
+User Actions Detected: {user_actions}
+Time Context: {time_context}
+
+TASK CLASSIFICATION:
+For each task, provide:
+- Category: [Research/Text/Action] 
+- Capability: [Can execute/Needs human]
+- Plan: [What I'll do / What human must do]
+
+EXECUTION TYPES & REQUIRED PARAMETERS:
+- research: {"topic": "what to research", "context": "current situation"}
+- text_generation: {"task_type": "email|message|rewrite", "content": "text to work with", "context": "situation"}
+- document_creation: {"document_type": "outline|plan", "topic": "what to create"}
+- data_organization: {"data_content": "actual data to organize", "organization_type": "list|categories"}
+
+CRITICAL: DO NOT USE "✅ Completed:" or "Completed:" in titles - these are reserved for actually executed tasks only.
+
+OUTPUT FORMAT:
+Return a JSON object with this exact structure:
+{{
+  "tasks": [
+    {{
+      "title": "Hyper-specific action with exact details (max 60 chars) - NO ✅ or Completed prefixes",
+      "description": "Detailed step-by-step instructions referencing specific content from transcription (max 400 chars)",
+      "category": "Research|Text|Action",
+      "capability": "Can execute|Needs human",
+      "plan": "Detailed explanation of execution or what human must do",
+      "execute": true|false,
+      "execution_type": "research|text_generation|document_creation|data_organization",
+      "execution_params": {{"topic": "specific topic", "context": "specific context"}},
+      "rationale": "Specific evidence from transcription (max 250 chars)",
+      "priority": "high|medium|low",
+      "confidence": 1-10
+    }}
+  ]
+}}
+
+Always ask yourself: Can I fully complete this task end-to-end with my current abilities?
+Never attempt actions outside your abilities.
+Preserve the quality and specificity of suggestions - be detailed and actionable."""
+
 # Enhanced Proactive AI Prompt with better transcription data extraction
 PROACTIVE_ANALYSIS_PROMPT = """You are a hyper-observant productivity analyst that analyzes user activity transcriptions to provide extremely specific, data-driven suggestions. You notice patterns, inefficiencies, and opportunities that the user might miss.
 
@@ -401,18 +471,28 @@ class ProactiveEngine:
                 # Parse transcription data for structured context (if enabled)
                 if self.config.enable_context_parsing:
                     parsed_context = parse_transcription_data(transcription_content)
-                    
-                    # Use string replacement instead of format() to avoid curly brace issues
-                    prompt = PROACTIVE_ANALYSIS_PROMPT.replace('{parsed_transcription}', transcription_content[:self.config.max_transcription_length])
+                else:
+                    parsed_context = {"current_app": "Unknown", "active_window": "Unknown", 
+                                    "visible_content": "No content", "user_actions": "General activity", 
+                                    "time_context": "Unknown"}
+                
+                # Choose prompt based on autonomous execution setting
+                if hasattr(self.config, 'enable_autonomous_execution') and self.config.enable_autonomous_execution:
+                    # Use capability reasoning prompt
+                    prompt = CAPABILITY_REASONING_PROMPT.replace('{parsed_transcription}', transcription_content[:self.config.max_transcription_length])
                     prompt = prompt.replace('{current_app}', parsed_context["current_app"])
                     prompt = prompt.replace('{active_window}', parsed_context["active_window"])
                     prompt = prompt.replace('{visible_content}', parsed_context["visible_content"][:self.config.max_visible_content_length])
                     prompt = prompt.replace('{user_actions}', parsed_context["user_actions"])
                     prompt = prompt.replace('{time_context}', parsed_context["time_context"])
                 else:
-                    # Fallback to simple prompt
-                    parsed_context = {"current_app": "Unknown", "active_window": "Unknown"}
-                    prompt = f"Analyze this transcription and provide 1-3 specific suggestions: {transcription_content[:self.config.max_transcription_length]}"
+                    # Use original prompt
+                    prompt = PROACTIVE_ANALYSIS_PROMPT.replace('{parsed_transcription}', transcription_content[:self.config.max_transcription_length])
+                    prompt = prompt.replace('{current_app}', parsed_context["current_app"])
+                    prompt = prompt.replace('{active_window}', parsed_context["active_window"])
+                    prompt = prompt.replace('{visible_content}', parsed_context["visible_content"][:self.config.max_visible_content_length])
+                    prompt = prompt.replace('{user_actions}', parsed_context["user_actions"])
+                    prompt = prompt.replace('{time_context}', parsed_context["time_context"])
                 
                 logger.info(f"🔍 Enhanced context extracted: {parsed_context['current_app']} | {parsed_context['active_window']}")
                 
@@ -428,28 +508,113 @@ class ProactiveEngine:
                 
                 logger.debug(f"Raw AI response for proactive suggestions: {response_content[:500]}...")
                 
-                # Parse JSON response
+                # Parse JSON response (handle both old and new formats)
                 try:
-                    suggestions_data = self._parse_json_response(response_content)
-                    suggestions = suggestions_data.get("suggestions", [])
-                    logger.debug(f"Parsed {len(suggestions)} suggestions from AI response")
+                    response_data = self._parse_json_response(response_content)
                     
-                    if not suggestions:
-                        logger.warning("No suggestions found in AI response")
-                        continue
+                    # Handle capability reasoning format vs traditional format
+                    if hasattr(self.config, 'enable_autonomous_execution') and self.config.enable_autonomous_execution:
+                        # Try "tasks" format first, fallback to "suggestions" format
+                        tasks = response_data.get("tasks", [])
+                        if not tasks:
+                            # AI responded with "suggestions" format instead of "tasks" - convert them
+                            suggestions_raw = response_data.get("suggestions", [])
+                            if suggestions_raw:
+                                logger.warning("AI used 'suggestions' format instead of 'tasks' format - converting")
+                                tasks = suggestions_raw  # Treat suggestions as tasks for capability reasoning
+                            
+                        logger.debug(f"Parsed {len(tasks)} tasks from capability reasoning response")
+                        
+                        if not tasks:
+                            logger.warning("No tasks or suggestions found in capability reasoning response")
+                            continue
+                        
+                        # Convert confidence to int if it's a string and separate executable vs suggestions
+                        executable_tasks = []
+                        suggestion_tasks = []
+                        
+                        for task in tasks:
+                            if "confidence" in task and isinstance(task["confidence"], str):
+                                try:
+                                    task["confidence"] = int(task["confidence"])
+                                except ValueError:
+                                    task["confidence"] = 5  # Default fallback
+                            
+                            # CRITICAL: Detect AI hallucinated "Completed:" titles and convert to executable tasks
+                            title = task.get("title", "")
+                            if ("✅ Completed:" in title or "Completed:" in title) and not task.get("executed", False):
+                                logger.warning(f"AI hallucinated completed title: {title} - converting to executable task")
+                                # Remove the fake "Completed:" prefix
+                                clean_title = title.replace("✅ Completed:", "").replace("Completed:", "").strip()
+                                task["title"] = clean_title
+                                task["execute"] = True  # Force execution
+                                
+                                # Infer execution type from title/description
+                                if not task.get("execution_type"):
+                                    description = task.get("description", "").lower()
+                                    if "research" in description or "summarize" in description or "analyze" in description:
+                                        task["execution_type"] = "research"
+                                        task["execution_params"] = {
+                                            "topic": clean_title,
+                                            "context": task.get("description", "")
+                                        }
+                                    else:
+                                        task["execution_type"] = "text_generation"
+                                        task["execution_params"] = {
+                                            "task_type": "summary",
+                                            "content": task.get("description", ""),
+                                            "context": "User request"
+                                        }
+                            
+                            # Separate executable tasks from suggestions
+                            if task.get("execute", False):
+                                executable_tasks.append(task)
+                            else:
+                                suggestion_tasks.append(task)
+                        
+                        # Execute autonomous tasks
+                        completed_actions = []
+                        for task in executable_tasks:
+                            try:
+                                execution_result = await self._execute_autonomous_task(task)
+                                if execution_result:
+                                    completed_actions.append(execution_result)
+                                    logger.info(f"✅ Executed autonomous task: {task.get('title', 'Unknown')}")
+                                else:
+                                    logger.warning(f"⚠️ Failed to execute task: {task.get('title', 'Unknown')}")
+                                    # Convert failed execution back to suggestion
+                                    task["execute"] = False
+                                    suggestion_tasks.append(task)
+                            except Exception as e:
+                                logger.error(f"💥 Task execution error: {e}")
+                                # Convert failed execution back to suggestion
+                                task["execute"] = False
+                                suggestion_tasks.append(task)
+                        
+                        # Combine results
+                        suggestions = completed_actions + suggestion_tasks
+                        
+                    else:
+                        # Traditional format
+                        suggestions = response_data.get("suggestions", [])
+                        logger.debug(f"Parsed {len(suggestions)} suggestions from traditional response")
+                        
+                        if not suggestions:
+                            logger.warning("No suggestions found in traditional response")
+                            continue
+                        
+                        # Convert confidence to int if it's a string
+                        for suggestion in suggestions:
+                            if "confidence" in suggestion and isinstance(suggestion["confidence"], str):
+                                try:
+                                    suggestion["confidence"] = int(suggestion["confidence"])
+                                except ValueError:
+                                    suggestion["confidence"] = 5  # Default fallback
                         
                 except Exception as parse_error:
                     logger.error(f"JSON parsing failed: {parse_error}")
                     logger.error(f"Response content: {response_content[:500]}...")
                     continue
-                
-                # Convert confidence to int if it's a string
-                for suggestion in suggestions:
-                    if "confidence" in suggestion and isinstance(suggestion["confidence"], str):
-                        try:
-                            suggestion["confidence"] = int(suggestion["confidence"])
-                        except ValueError:
-                            suggestion["confidence"] = 5  # Default fallback
                 
                 # Enhanced validation with context awareness (if enabled)
                 valid_suggestions = []
@@ -630,6 +795,9 @@ class ProactiveEngine:
                 logger.warning("Suggestion missing required fields")
                 return False
             
+            # NOTE: Fake "Completed" titles are now handled by conversion logic in main processing
+            # No longer rejecting them here since they get converted to executable tasks
+            
             # Check field lengths
             if len(suggestion["title"]) > 60:
                 logger.warning("Suggestion title too long")
@@ -718,6 +886,9 @@ class ProactiveEngine:
                 if "suggestions" in data:
                     logger.debug("Direct JSON parsing successful - suggestions found")
                     return data
+                elif "tasks" in data:
+                    logger.debug("Direct JSON parsing successful - tasks found")
+                    return data
                 elif "propositions" in data:
                     logger.debug("Direct JSON parsing successful - propositions found, converting to suggestions")
                     return self._convert_propositions_to_suggestions(data)
@@ -746,6 +917,9 @@ class ProactiveEngine:
                                     if "suggestions" in data:
                                         logger.debug("Markdown JSON parsing successful - suggestions found")
                                         return data
+                                    elif "tasks" in data:
+                                        logger.debug("Markdown JSON parsing successful - tasks found")
+                                        return data
                                     elif "propositions" in data:
                                         logger.debug("Markdown JSON parsing successful - propositions found, converting to suggestions")
                                         return self._convert_propositions_to_suggestions(data)
@@ -764,6 +938,9 @@ class ProactiveEngine:
                     data = json.loads(json_str)
                     if "suggestions" in data:
                         logger.debug("Brace matching JSON parsing successful - suggestions found")
+                        return data
+                    elif "tasks" in data:
+                        logger.debug("Brace matching JSON parsing successful - tasks found")
                         return data
                     elif "propositions" in data:
                         logger.debug("Brace matching JSON parsing successful - propositions found, converting to suggestions")
@@ -841,6 +1018,51 @@ class ProactiveEngine:
         self._suggestion_metrics["total_observations_processed"] += 1
         self._suggestion_metrics["total_processing_time"] += processing_time
         self._suggestion_metrics["last_suggestion_at"] = datetime.now(timezone.utc)
+    
+    async def _execute_autonomous_task(self, task: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Execute autonomous task using task executors"""
+        try:
+            # Import task executors
+            from .task_executors import execute_autonomous_task
+            
+            execution_type = task.get("execution_type")
+            execution_params = task.get("execution_params", {})
+            
+            if not execution_type:
+                logger.error("Task missing execution_type")
+                return None
+            
+            # Add task context to params
+            execution_params.update({
+                "title": task.get("title", ""),
+                "description": task.get("description", ""),
+                "context": task.get("rationale", "")
+            })
+            
+            # Execute the task
+            result = await execute_autonomous_task(execution_type, execution_params)
+            
+            if result.success:
+                # Convert to suggestion format with execution data
+                return {
+                    "title": f"✅ Completed: {task.get('title', 'Task')}",
+                    "description": f"I {task.get('description', 'completed a task')}",
+                    "category": "autonomous_action", 
+                    "rationale": task.get("rationale", ""),
+                    "priority": task.get("priority", "medium"),
+                    "confidence": task.get("confidence", 7),
+                    "executed": True,
+                    "execution_result": json.dumps(result.result_data),
+                    "execution_status": result.status,
+                    "execution_time_seconds": result.execution_time
+                }
+            else:
+                logger.error(f"Task execution failed: {result.error_message}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error executing autonomous task: {e}")
+            return None
     
     def get_health_status(self) -> Dict[str, Any]:
         """Get current engine health status."""

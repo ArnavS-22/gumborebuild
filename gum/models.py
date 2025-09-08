@@ -228,6 +228,12 @@ class Suggestion(Base):
     batch_id: Mapped[str] = mapped_column(String(100), nullable=False)
     delivered: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
+    # Autonomous execution fields
+    executed: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
+    execution_result: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    execution_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    execution_time_seconds: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    
     created_at: Mapped[str] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

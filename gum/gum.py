@@ -548,7 +548,10 @@ class gum:
                     # Import here to avoid circular imports
                     from .services.gumbo_engine import trigger_gumbo_suggestions
                     # Fire and forget - don't block proposition creation
-                    asyncio.create_task(trigger_gumbo_suggestions(draft.id, session))
+                    # Note: gumbo engine creates its own session to avoid transaction conflicts
+                    task = asyncio.create_task(self._trigger_gumbo_suggestions(draft.id))
+                    self._tasks.add(task)
+                    task.add_done_callback(self._tasks.discard)
                     self.logger.info(f"🎯 Gumbo triggered for high-confidence proposition {draft.id} (confidence: {draft.confidence})")
                 except Exception as e:
                     self.logger.error(f"Failed to trigger Gumbo for proposition {draft.id}: {e}")
@@ -695,7 +698,10 @@ class gum:
             try:
                 from .services.proactive_engine import trigger_proactive_suggestions
                 # Fire and forget - don't block proposition generation
-                asyncio.create_task(self._trigger_proactive_suggestions(observation.id, session))
+                # Note: _trigger_proactive_suggestions creates its own session to avoid transaction conflicts
+                task = asyncio.create_task(self._trigger_proactive_suggestions(observation.id))
+                self._tasks.add(task)
+                task.add_done_callback(self._tasks.discard)
                 self.logger.info(f"🚀 Proactive suggestions triggered for observation {observation.id}")
             except Exception as e:
                 self.logger.error(f"Failed to trigger proactive suggestions for observation {observation.id}: {e}")
@@ -731,18 +737,21 @@ class gum:
         )
         prop.updated_at = datetime.now(timezone.utc)
 
-    async def _trigger_proactive_suggestions(self, observation_id: int, session: AsyncSession):
+    async def _trigger_proactive_suggestions(self, observation_id: int):
         """
         Trigger proactive suggestions for an observation.
         
         This method handles the proactive suggestion generation and SSE broadcasting.
         It's called asynchronously to avoid blocking the main observation processing flow.
+        Creates its own database session to avoid transaction context conflicts.
         
         Args:
             observation_id: ID of the observation to analyze
-            session: Database session (note: this creates a new session to avoid conflicts)
         """
+        start_time = datetime.now(timezone.utc)
         try:
+            self.logger.debug(f"Starting proactive suggestion processing for observation {observation_id}")
+            
             # Import here to avoid circular imports
             from .services.proactive_engine import trigger_proactive_suggestions
             
@@ -753,12 +762,47 @@ class gum:
                 if suggestions and len(suggestions) > 0:
                     # Broadcast proactive suggestions via SSE
                     await self._broadcast_proactive_suggestions(suggestions, observation_id)
-                    self.logger.info(f"✅ Broadcasted {len(suggestions)} proactive suggestions for observation {observation_id}")
+                    processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+                    self.logger.info(f"✅ Broadcasted {len(suggestions)} proactive suggestions for observation {observation_id} in {processing_time:.2f}s")
                 else:
-                    self.logger.info(f"No proactive suggestions generated for observation {observation_id}")
+                    processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+                    self.logger.info(f"No proactive suggestions generated for observation {observation_id} (processed in {processing_time:.2f}s)")
                     
         except Exception as e:
-            self.logger.error(f"Error in proactive suggestion processing for observation {observation_id}: {e}")
+            processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+            self.logger.error(f"Error in proactive suggestion processing for observation {observation_id} after {processing_time:.2f}s: {e}", exc_info=True)
+
+    async def _trigger_gumbo_suggestions(self, proposition_id: int):
+        """
+        Trigger Gumbo suggestions for a high-confidence proposition.
+        
+        This method handles the Gumbo suggestion generation and SSE broadcasting.
+        It's called asynchronously to avoid blocking the main proposition processing flow.
+        Creates its own database session to avoid transaction context conflicts.
+        
+        Args:
+            proposition_id: ID of the proposition that triggered Gumbo
+        """
+        start_time = datetime.now(timezone.utc)
+        try:
+            self.logger.debug(f"Starting Gumbo suggestion processing for proposition {proposition_id}")
+            
+            # Import here to avoid circular imports
+            from .services.gumbo_engine import trigger_gumbo_suggestions
+            
+            # Create a new session for Gumbo processing to avoid conflicts
+            async with self._session() as gumbo_session:
+                batch = await trigger_gumbo_suggestions(proposition_id, gumbo_session)
+                
+                processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+                if batch and batch.suggestions:
+                    self.logger.info(f"✅ Gumbo generated {len(batch.suggestions)} suggestions for proposition {proposition_id} in {processing_time:.2f}s")
+                else:
+                    self.logger.info(f"No Gumbo suggestions generated for proposition {proposition_id} (processed in {processing_time:.2f}s)")
+                    
+        except Exception as e:
+            processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+            self.logger.error(f"Error in Gumbo suggestion processing for proposition {proposition_id} after {processing_time:.2f}s: {e}", exc_info=True)
 
     async def _broadcast_proactive_suggestions(self, suggestions: list, observation_id: int):
         """

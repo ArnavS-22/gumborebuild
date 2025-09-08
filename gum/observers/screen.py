@@ -356,8 +356,12 @@ class Screen(Observer):
                 logging.getLogger("Screen").warning(f"Invalid summary: {summary[:100] if summary else 'None'}...")
             return  # Skip invalid content
         
-        # Step 5: Combine and validate final content
-        txt = transcription.strip()
+        # Step 5: Combine transcription and summary for richer behavioral context
+        transcription_clean = transcription.strip()
+        summary_clean = summary.strip()
+        
+        # Combine both data sources for comprehensive analysis
+        txt = f"{transcription_clean}\n\nBehavioral Context: {summary_clean}"
         if not self._is_valid_final_content(txt):
             if self.debug:
                 logging.getLogger("Screen").warning(f"Invalid final content: {txt[:100] if txt else 'None'}...")

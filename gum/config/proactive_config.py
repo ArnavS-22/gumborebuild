@@ -45,6 +45,7 @@ class ProactiveEngineConfig:
     enable_specificity_scoring: bool = True
     enable_retry_logic: bool = True
     enable_enhanced_validation: bool = True
+    enable_autonomous_execution: bool = True  # NEW: Enable capability reasoning and execution
     
     @classmethod
     def from_environment(cls) -> 'ProactiveEngineConfig':
