@@ -234,6 +234,15 @@ class Suggestion(Base):
     execution_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     execution_time_seconds: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     
+    # Completed work fields for maximally helpful AI
+    has_completed_work: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
+    completed_work_content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    completed_work_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # 'text', 'json', 'markdown', 'html', 'csv'
+    completed_work_preview: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    action_label: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # 'Open Chat', 'View Results', etc.
+    executor_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # Which executor generated this
+    work_metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON metadata about the work
+    
     created_at: Mapped[str] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

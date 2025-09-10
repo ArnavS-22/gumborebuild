@@ -2949,43 +2949,76 @@ async def get_suggestion_history(
         gum_inst = await ensure_gum_instance(user_name)
         
         async with gum_inst._session() as session:
-            from gum.models import Suggestion
-            from sqlalchemy import select, desc
+            from sqlalchemy import text
             
-            stmt = select(Suggestion).order_by(desc(Suggestion.created_at))
+            # Use raw SQL to avoid ORM field mapping issues
+            sql_query = """
+                SELECT id, title, description, category, rationale, expected_utility,
+                       probability_useful, trigger_proposition_id, batch_id, delivered,
+                       created_at, has_completed_work, completed_work_content,
+                       completed_work_type, completed_work_preview, action_label,
+                       executor_type, work_metadata
+                FROM suggestions
+                WHERE 1=1
+            """
+            
+            params = {}
             
             if delivered_only is not None:
-                stmt = stmt.where(Suggestion.delivered == delivered_only)
+                sql_query += " AND delivered = :delivered_only"
+                params["delivered_only"] = delivered_only
             
-            # NEW: Filter by suggestion type (proactive vs gumbo)
+            # Filter by suggestion type (proactive vs gumbo)
             if suggestion_type:
                 if suggestion_type.lower() == "proactive":
-                    stmt = stmt.where(Suggestion.category == "proactive")
+                    sql_query += " AND category = :category"
+                    params["category"] = "proactive"
                 elif suggestion_type.lower() == "gumbo":
-                    stmt = stmt.where(Suggestion.category != "proactive")
+                    sql_query += " AND category != :category"
+                    params["category"] = "proactive"
             
-            stmt = stmt.limit(limit).offset(offset)
+            sql_query += " ORDER BY created_at DESC LIMIT :limit OFFSET :offset"
+            params["limit"] = limit
+            params["offset"] = offset
             
-            result = await session.execute(stmt)
-            suggestions = result.scalars().all()
+            result = await session.execute(text(sql_query), params)
+            rows = result.fetchall()
             
-            return [
-                {
-                    "id": s.id,
-                    "title": s.title,
-                    "description": s.description,
-                    "category": s.category,
-                    "rationale": s.rationale,
-                    "expected_utility": s.expected_utility,
-                    "probability_useful": s.probability_useful,
-                    "trigger_proposition_id": s.trigger_proposition_id,
-                    "batch_id": s.batch_id,
-                    "delivered": s.delivered,
-                    "created_at": s.created_at.isoformat() if hasattr(s.created_at, 'isoformat') else str(s.created_at),
-                    "type": "proactive" if s.category == "proactive" else "gumbo"  # NEW: Add type field
+            # Build response from raw SQL results
+            response_data = []
+            for row in rows:
+                (id, title, description, category, rationale, expected_utility,
+                 probability_useful, trigger_proposition_id, batch_id, delivered,
+                 created_at, has_completed_work, completed_work_content,
+                 completed_work_type, completed_work_preview, action_label,
+                 executor_type, work_metadata) = row
+                
+                suggestion_dict = {
+                    "id": id,
+                    "title": title,
+                    "description": description,
+                    "category": category,
+                    "rationale": rationale,
+                    "expected_utility": expected_utility,
+                    "probability_useful": probability_useful,
+                    "trigger_proposition_id": trigger_proposition_id,
+                    "batch_id": batch_id,
+                    "delivered": delivered,
+                    "created_at": created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at),
+                    "type": "proactive" if category == "proactive" else "gumbo",
+                    # Completed work fields from database
+                    "has_completed_work": bool(has_completed_work),
+                    "completed_work_content": completed_work_content,
+                    "completed_work_type": completed_work_type,
+                    "completed_work_preview": completed_work_preview,
+                    "action_label": action_label,
+                    "executor_type": executor_type,
+                    "work_metadata": work_metadata
                 }
-                for s in suggestions
-            ]
+                
+                response_data.append(suggestion_dict)
+            
+            return response_data
             
     except Exception as e:
         logger.error(f"Error getting suggestion history: {e}")
@@ -3126,6 +3159,7 @@ async def get_suggestion_stats(user_name: Optional[str] = None):
             gumbo_count = gumbo_result.scalar()
             
             # Get recent suggestions
+            from sqlalchemy import desc
             recent_stmt = select(Suggestion).order_by(desc(Suggestion.created_at)).limit(5)
             recent_result = await session.execute(recent_stmt)
             recent_suggestions = recent_result.scalars().all()

@@ -1860,7 +1860,20 @@ class ZavionApp {
         }
     }
 
-
+    /**
+     * Switch to suggestions tab with proper initialization
+     * This ensures homepage clicks properly redirect to the main suggestions display
+     */
+    switchToSuggestionsTab() {
+        // Switch to suggestions tab
+        this.switchTab('suggestions');
+        
+        // Ensure the suggestions display is properly initialized
+        // This forces the main suggestions display system to load
+        setTimeout(() => {
+            this.initializeSuggestionStream();
+        }, 100);
+    }
 
     // ===== TIMELINE FUNCTIONALITY =====
 
@@ -2645,7 +2658,7 @@ class ZavionApp {
                     const shortTitle = suggestionTitle.length > 30 ? suggestionTitle.substring(0, 30) + '...' : suggestionTitle;
                     
                     return `
-                        <div class="cursor-suggestion-item" onclick="window.zavionApp?.switchTab('suggestions')">
+                        <div class="cursor-suggestion-item" onclick="window.zavionApp?.switchToSuggestionsTab()">
                             <div class="cursor-suggestion-icon">
                                 <i class="${getFileIcon(suggestion.type || 'general')}"></i>
                             </div>
@@ -3639,10 +3652,75 @@ class ZavionApp {
      */
     renderSuggestionCard(suggestion, index, type = 'gumbo') {
         const isProactive = type === 'proactive' || suggestion.type === 'proactive' || suggestion.category === 'proactive';
-        const cardClass = isProactive ? 'suggestion-card proactive-suggestion' : 'suggestion-card gumbo-suggestion';
-        const typeIcon = isProactive ? 'fas fa-bolt' : 'fas fa-brain';
-        const typeLabel = isProactive ? 'Immediate' : 'Pattern-Based';
+        const isCompletedWork = suggestion.has_completed_work || suggestion.category === 'completed_work';
         
+        // Determine card styling based on type
+        let cardClass, typeIcon, typeLabel;
+        if (isCompletedWork) {
+            cardClass = 'suggestion-card completed-work-card';
+            typeIcon = 'fas fa-check-circle';
+            typeLabel = 'Completed Work';
+        } else if (isProactive) {
+            cardClass = 'suggestion-card proactive-suggestion';
+            typeIcon = 'fas fa-bolt';
+            typeLabel = 'Immediate';
+        } else {
+            cardClass = 'suggestion-card gumbo-suggestion';
+            typeIcon = 'fas fa-brain';
+            typeLabel = 'Pattern-Based';
+        }
+        
+        // Render completed work card with "Open Chat" style
+        if (isCompletedWork) {
+            const actionLabel = suggestion.action_label || 'View Results';
+            const preview = suggestion.completed_work_preview || suggestion.description;
+            const workType = suggestion.completed_work_type || 'text';
+            const executorType = suggestion.executor_type || 'unknown';
+            
+            return `
+                <div class="${cardClass}" data-suggestion-index="${index}" data-suggestion-type="completed_work">
+                    <div class="completed-work-header">
+                        <div class="work-title-section">
+                            <h4 class="completed-work-title">${this.escapeHtml(suggestion.title)}</h4>
+                            <div class="work-type-badge" data-work-type="${workType}">
+                                <i class="fas fa-file-alt"></i>
+                                ${this.formatWorkType(workType)}
+                            </div>
+                        </div>
+                        <div class="completion-indicator">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Ready</span>
+                        </div>
+                    </div>
+                    
+                    <div class="completed-work-preview">
+                        ${this.escapeHtml(preview)}
+                    </div>
+                    
+                    <div class="completed-work-actions">
+                        <button class="primary-action-btn" onclick="window.zavionApp.viewCompletedWork(${index})">
+                            <i class="fas fa-external-link-alt"></i>
+                            ${actionLabel}
+                        </button>
+                        <button class="secondary-action-btn" onclick="window.zavionApp.copyCompletedWork(${index})">
+                            <i class="fas fa-copy"></i>
+                            Copy
+                        </button>
+                        <div class="work-metadata">
+                            <span class="executor-badge" data-executor="${executorType}">
+                                <i class="fas fa-robot"></i>
+                                ${this.formatExecutorType(executorType)}
+                            </span>
+                            <span class="time-badge">
+                                ${this.getTimeAgo(new Date(suggestion.created_at))}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Render traditional suggestion card
         return `
             <div class="${cardClass}" data-suggestion-index="${index}" data-suggestion-type="${type}">
                 <div class="suggestion-header">
@@ -3706,6 +3784,153 @@ class ZavionApp {
             console.error('Failed to copy suggestion:', err);
             this.showToast('Failed to copy suggestion', 'error');
         });
+    }
+
+    // Completed work viewing and interaction methods
+    viewCompletedWork(index) {
+        if (!this.currentSuggestions || !this.currentSuggestions[index]) return;
+        
+        const suggestion = this.currentSuggestions[index];
+        if (!suggestion.has_completed_work && !suggestion.completed_work_content) {
+            this.showToast('No completed work available', 'warning');
+            return;
+        }
+        
+        // Create modal to display completed work
+        this.showCompletedWorkModal(suggestion);
+    }
+
+    copyCompletedWork(index) {
+        if (!this.currentSuggestions || !this.currentSuggestions[index]) return;
+        
+        const suggestion = this.currentSuggestions[index];
+        const content = suggestion.completed_work_content || suggestion.description;
+        
+        navigator.clipboard.writeText(content).then(() => {
+            this.showToast('Completed work copied to clipboard!', 'success');
+        }).catch(err => {
+            console.error('Failed to copy completed work:', err);
+            this.showToast('Failed to copy completed work', 'error');
+        });
+    }
+
+    showCompletedWorkModal(suggestion) {
+        // Create modal overlay
+        const modal = document.createElement('div');
+        modal.className = 'completed-work-modal-overlay';
+        modal.innerHTML = `
+            <div class="completed-work-modal">
+                <div class="modal-header">
+                    <h3>${this.escapeHtml(suggestion.title)}</h3>
+                    <button class="modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-content">
+                    <div class="work-metadata-bar">
+                        <span class="work-type-indicator">
+                            <i class="fas fa-file-alt"></i>
+                            ${this.formatWorkType(suggestion.completed_work_type || 'text')}
+                        </span>
+                        <span class="executor-indicator">
+                            <i class="fas fa-robot"></i>
+                            ${this.formatExecutorType(suggestion.executor_type || 'ai')}
+                        </span>
+                        <span class="creation-time">
+                            <i class="fas fa-clock"></i>
+                            ${this.getTimeAgo(new Date(suggestion.created_at))}
+                        </span>
+                    </div>
+                    <div class="completed-work-content" data-content-type="${suggestion.completed_work_type || 'text'}">
+                        ${this.formatCompletedWorkContent(suggestion.completed_work_content || suggestion.description, suggestion.completed_work_type)}
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="primary-btn" onclick="window.zavionApp.copyCompletedWorkFromModal('${suggestion.id || index}')">
+                        <i class="fas fa-copy"></i>
+                        Copy Content
+                    </button>
+                    <button class="secondary-btn" onclick="window.zavionApp.downloadCompletedWork('${suggestion.id || index}')">
+                        <i class="fas fa-download"></i>
+                        Download
+                    </button>
+                    <button class="secondary-btn" onclick="this.parentElement.parentElement.parentElement.remove()">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Add to page
+        document.body.appendChild(modal);
+        
+        // Add click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+        
+        // Store reference for other methods
+        modal.suggestionData = suggestion;
+    }
+
+    // Utility methods for completed work
+    formatWorkType(workType) {
+        const typeMap = {
+            'text': 'Text',
+            'markdown': 'Markdown',
+            'json': 'JSON',
+            'html': 'HTML',
+            'csv': 'CSV',
+            'code': 'Code'
+        };
+        return typeMap[workType] || 'Document';
+    }
+
+    formatExecutorType(executorType) {
+        const executorMap = {
+            'financial_analysis': 'Financial Analyst',
+            'workflow_optimization': 'Workflow Optimizer',
+            'content_creation': 'Content Creator',
+            'code_analysis': 'Code Analyst',
+            'data_analysis': 'Data Analyst',
+            'resource_compilation': 'Resource Compiler',
+            'ai_fallback': 'AI Assistant'
+        };
+        return executorMap[executorType] || 'AI Assistant';
+    }
+
+    formatCompletedWorkContent(content, contentType) {
+        if (!content) return '<p>No content available</p>';
+        
+        switch (contentType) {
+            case 'markdown':
+                return `<div class="markdown-content">${this.simpleMarkdownRender(content)}</div>`;
+            case 'json':
+                try {
+                    const parsed = JSON.parse(content);
+                    return `<pre class="json-content">${JSON.stringify(parsed, null, 2)}</pre>`;
+                } catch (e) {
+                    return `<pre class="json-content">${this.escapeHtml(content)}</pre>`;
+                }
+            case 'html':
+                return `<div class="html-preview">${content}</div>`;
+            case 'csv':
+                return `<pre class="csv-content">${this.escapeHtml(content)}</pre>`;
+            default:
+                return `<div class="text-content">${this.escapeHtml(content).replace(/\n/g, '<br>')}</div>`;
+        }
+    }
+
+    simpleMarkdownRender(markdown) {
+        return markdown
+            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+            .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
+            .replace(/\*(.*)\*/gim, '<em>$1</em>')
+            .replace(/\n/gim, '<br>');
     }
 
 
