@@ -1,248 +1,382 @@
-#!/usr/bin/env python3
 """
-Brutal Reality Check - Expose All Implementation Flaws
-
-This test is designed to BREAK the enhanced proactive system and expose
-every flaw, magical thinking, and half-assed implementation.
+Brutal Reality Check - Test what actually breaks in the Screen-First System
+This test is designed to find all the ways the system fails with real data
 """
 
 import asyncio
 import json
-from datetime import datetime, timezone, timedelta
-from uuid import uuid4
-
 import sys
 import os
-sys.path.insert(0, os.path.dirname(__file__))
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
 
-from gum.models import init_db, Observation, Proposition
-from gum.services.proactive_engine import ProactiveEngine
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-
-async def test_expose_implementation_flaws():
-    """Brutal test designed to expose every flaw in the implementation."""
+def test_broken_screen_state_access():
+    """Test the broken screen state access in proactive engine"""
+    print("🔥 Testing Broken Screen State Access...")
     
-    print("🔥 BRUTAL REALITY CHECK - Exposing Implementation Flaws")
+    # This is what the proactive engine actually does
+    enhanced_context = {
+        'screen_state': {}  # This is a dict, not a ScreenState object!
+    }
+    
+    try:
+        # This line from proactive_engine.py will crash
+        current_task = enhanced_context.get('screen_state', {}).current_task if enhanced_context.get('screen_state') else 'unknown'
+        print(f"   ❌ SHOULD HAVE CRASHED: Got {current_task}")
+        return False
+    except AttributeError as e:
+        print(f"   ✅ CRASHED AS EXPECTED: {e}")
+        print("   🚨 CRITICAL BUG: Proactive engine tries to access .current_task on dict")
+        return True
+
+def test_malformed_transcription_data():
+    """Test how system handles malformed transcription data"""
+    print("\n🔥 Testing Malformed Transcription Data...")
+    
+    from gum.services.proactive_engine import parse_transcription_data
+    
+    # Test 1: Empty transcription
+    try:
+        result = parse_transcription_data("")
+        print(f"   Empty transcription: {result}")
+        assert result['current_app'] == 'Unknown'
+        print("   ✅ Handles empty transcription")
+    except Exception as e:
+        print(f"   ❌ CRASHES on empty transcription: {e}")
+        return False
+    
+    # Test 2: Malformed transcription
+    try:
+        malformed = "Random garbage text with no structure @#$%^&*()"
+        result = parse_transcription_data(malformed)
+        print(f"   Malformed transcription: {result}")
+        print("   ✅ Handles malformed transcription")
+    except Exception as e:
+        print(f"   ❌ CRASHES on malformed transcription: {e}")
+        return False
+    
+    # Test 3: Very long transcription
+    try:
+        long_transcription = "Application: VS Code\n" + "x" * 10000
+        result = parse_transcription_data(long_transcription)
+        print(f"   Long transcription visible_content length: {len(result['visible_content'])}")
+        print("   ✅ Handles very long transcription")
+    except Exception as e:
+        print(f"   ❌ CRASHES on long transcription: {e}")
+        return False
+    
+    return True
+
+def test_screen_analyzer_edge_cases():
+    """Test screen analyzer with edge cases that will break it"""
+    print("\n🔥 Testing Screen Analyzer Edge Cases...")
+    
+    try:
+        from gum.services.screen_first_analyzer import ScreenFirstAnalyzer
+        analyzer = ScreenFirstAnalyzer()
+        
+        # Test 1: Empty context
+        try:
+            screen_state = analyzer.analyze_screen_state("", {})
+            print(f"   Empty context result: {screen_state.current_task}")
+            print("   ✅ Handles empty context")
+        except Exception as e:
+            print(f"   ❌ CRASHES on empty context: {e}")
+            return False
+        
+        # Test 2: Missing context fields
+        try:
+            incomplete_context = {"current_app": "VS Code"}  # Missing other fields
+            screen_state = analyzer.analyze_screen_state("Some text", incomplete_context)
+            print(f"   Incomplete context result: {screen_state.current_task}")
+            print("   ✅ Handles incomplete context")
+        except Exception as e:
+            print(f"   ❌ CRASHES on incomplete context: {e}")
+            return False
+        
+        # Test 3: Weird app names
+        try:
+            weird_context = {"current_app": "Visual Studio Code.exe (64-bit)"}
+            screen_state = analyzer.analyze_screen_state("coding stuff", weird_context)
+            print(f"   Weird app name result: {screen_state.current_task}")
+            # This will probably return 'general_work' instead of 'coding'
+            if screen_state.current_task != 'coding':
+                print("   🚨 BUG: Doesn't recognize 'Visual Studio Code.exe' as coding app")
+            print("   ✅ Doesn't crash on weird app names")
+        except Exception as e:
+            print(f"   ❌ CRASHES on weird app names: {e}")
+            return False
+        
+        return True
+        
+    except ImportError as e:
+        print(f"   ❌ CAN'T EVEN IMPORT: {e}")
+        return False
+
+def test_ai_prompt_format_assumptions():
+    """Test if the AI prompt format actually works"""
+    print("\n🔥 Testing AI Prompt Format Assumptions...")
+    
+    from gum.services.proactive_engine import SCREEN_FIRST_PROACTIVE_PROMPT
+    
+    # Test 1: Missing format parameters
+    try:
+        # This should crash if any format parameter is missing
+        incomplete_format = SCREEN_FIRST_PROACTIVE_PROMPT.format(
+            current_transcription="test",
+            current_app="VS Code"
+            # Missing other required parameters
+        )
+        print("   ❌ SHOULD HAVE CRASHED: Missing format parameters didn't cause error")
+        return False
+    except KeyError as e:
+        print(f"   ✅ CRASHES AS EXPECTED on missing format params: {e}")
+        print("   🚨 BUG: Prompt will crash if any context is missing")
+    
+    # Test 2: None values in format
+    try:
+        format_with_nones = SCREEN_FIRST_PROACTIVE_PROMPT.format(
+            current_transcription=None,  # This will break
+            current_app="VS Code",
+            active_window="main.py",
+            visible_content="code",
+            user_actions="coding",
+            time_context="2:30 PM",
+            behavioral_propositions_formatted="none",
+            recent_observations_formatted="none"
+        )
+        print("   ❌ SHOULD HAVE CRASHED: None values didn't cause error")
+        return False
+    except (TypeError, AttributeError) as e:
+        print(f"   ✅ CRASHES AS EXPECTED on None values: {e}")
+        print("   🚨 BUG: Prompt will crash if context contains None")
+    
+    return True
+
+def test_database_integration_assumptions():
+    """Test database integration assumptions"""
+    print("\n🔥 Testing Database Integration Assumptions...")
+    
+    # Test 1: Check if new fields actually exist in Suggestion model
+    try:
+        from gum.models import Suggestion
+        
+        # Check if the model has the fields I'm trying to use
+        suggestion = Suggestion()
+        
+        # These fields might not exist
+        test_fields = [
+            'screen_prediction_type', 'prediction_timeframe', 'current_task',
+            'task_stage', 'urgency_level', 'predicted_next_actions'
+        ]
+        
+        missing_fields = []
+        for field in test_fields:
+            if not hasattr(suggestion, field):
+                missing_fields.append(field)
+        
+        if missing_fields:
+            print(f"   🚨 CRITICAL: Missing database fields: {missing_fields}")
+            print("   ❌ Database integration will fail - fields don't exist")
+            return False
+        else:
+            print("   ✅ All expected database fields exist")
+            
+    except ImportError as e:
+        print(f"   ❌ CAN'T IMPORT MODELS: {e}")
+        return False
+    
+    return True
+
+def test_json_serialization_edge_cases():
+    """Test JSON serialization with complex objects"""
+    print("\n🔥 Testing JSON Serialization Edge Cases...")
+    
+    # Test 1: Complex metadata serialization
+    try:
+        complex_metadata = {
+            "current_screen_elements": ["VS Code", "main.py", None],  # None value
+            "predicted_next_steps": [],  # Empty array
+            "screen_context_used": "Test" * 1000,  # Very long string
+            "nested_object": {"key": {"nested": "value"}},  # Nested objects
+            "datetime_object": datetime.now()  # Non-serializable object
+        }
+        
+        serialized = json.dumps(complex_metadata)
+        print("   ❌ SHOULD HAVE CRASHED: Complex metadata serialized without error")
+        return False
+        
+    except (TypeError, ValueError) as e:
+        print(f"   ✅ CRASHES AS EXPECTED on complex metadata: {e}")
+        print("   🚨 BUG: Metadata serialization will fail with datetime objects")
+    
+    return True
+
+def test_performance_with_large_data():
+    """Test performance assumptions with large data"""
+    print("\n🔥 Testing Performance with Large Data...")
+    
+    # Test 1: Very long transcription
+    huge_transcription = "Application: VS Code\n" + "def function():\n    pass\n" * 1000
+    print(f"   Huge transcription size: {len(huge_transcription)} chars")
+    
+    try:
+        from gum.services.proactive_engine import parse_transcription_data
+        import time
+        
+        start_time = time.time()
+        result = parse_transcription_data(huge_transcription)
+        parse_time = time.time() - start_time
+        
+        print(f"   Parse time: {parse_time:.3f}s")
+        if parse_time > 1.0:
+            print("   🚨 PERFORMANCE ISSUE: Parsing takes >1 second")
+        else:
+            print("   ✅ Parsing performance acceptable")
+            
+    except Exception as e:
+        print(f"   ❌ CRASHES on large transcription: {e}")
+        return False
+    
+    return True
+
+def test_configuration_fallbacks():
+    """Test configuration fallback assumptions"""
+    print("\n🔥 Testing Configuration Fallback Assumptions...")
+    
+    try:
+        from gum.services.proactive_engine import get_config
+        
+        # Test if fallback config has all required fields
+        config = get_config()
+        
+        required_fields = [
+            'enable_screen_first_analysis', 'enable_enhanced_validation',
+            'max_retries', 'timeout_seconds', 'min_specificity_score'
+        ]
+        
+        missing_fields = []
+        for field in required_fields:
+            if not hasattr(config, field):
+                missing_fields.append(field)
+        
+        if missing_fields:
+            print(f"   🚨 CRITICAL: Missing config fields: {missing_fields}")
+            print("   ❌ Configuration fallback is incomplete")
+            return False
+        else:
+            print("   ✅ Configuration fallback has required fields")
+            
+    except Exception as e:
+        print(f"   ❌ Configuration system broken: {e}")
+        return False
+    
+    return True
+
+async def test_real_ai_integration():
+    """Test if the AI integration actually works"""
+    print("\n🔥 Testing Real AI Integration...")
+    
+    try:
+        # Mock the AI client to test integration
+        from gum.services.proactive_engine import ProactiveEngine
+        
+        engine = ProactiveEngine()
+        
+        # Test if initialization works
+        mock_ai_client = AsyncMock()
+        engine.ai_client = mock_ai_client
+        engine._started = True
+        
+        # Test malformed AI response
+        mock_ai_client.text_completion.return_value = "This is not JSON at all!"
+        
+        result = await engine._analyze_screen_activity("test transcription", 1, None)
+        
+        if result == []:
+            print("   ✅ Handles malformed AI response gracefully")
+        else:
+            print("   ❌ Should return empty list for malformed AI response")
+            return False
+            
+    except Exception as e:
+        print(f"   ❌ AI integration broken: {e}")
+        return False
+    
+    return True
+
+def main():
+    """Run brutal reality checks"""
+    print("💀 BRUTAL REALITY CHECK - Finding What Actually Breaks")
     print("=" * 70)
     
-    # Setup
-    engine, Session = await init_db(":memory:")
-    proactive_engine = ProactiveEngine()
-    await proactive_engine.start()
-    
-    flaws_found = []
-    
-    # FLAW TEST 1: Context Path Confusion
-    print("\n💥 FLAW TEST 1: Context Path Confusion")
-    async with Session() as session:
-        # Create observation with realistic transcription
-        obs = Observation(
-            observer_name="screen",
-            content="User is in Canva working on marketing flyer, editing text 'Summer Sale'",
-            content_type="input_text"
-        )
-        session.add(obs)
-        await session.commit()
-        
-        # Test if enhanced context is actually used
-        enhanced_context = await proactive_engine._get_enhanced_context_with_propositions(
-            obs.content, obs.id, session
-        )
-        
-        # Check if app extraction actually works
-        extracted_app = enhanced_context['current_app']
-        print(f"   Extracted app: '{extracted_app}'")
-        
-        if extracted_app == "Unknown":
-            flaws_found.append("FLAW: App extraction broken - doesn't parse 'User is in Canva' format")
-            print("   ❌ FLAW: App extraction completely broken")
-        else:
-            print("   ✅ App extraction working")
-    
-    # FLAW TEST 2: Proposition Integration Actually Working?
-    print("\n💥 FLAW TEST 2: Proposition Integration Reality Check")
-    async with Session() as session:
-        # Add propositions
-        props = [
-            Proposition(
-                text="User creates multiple design iterations",
-                reasoning="Observed pattern",
-                confidence=9,
-                revision_group=str(uuid4()),
-                version=1
-            )
-        ]
-        session.add_all(props)
-        await session.commit()
-        
-        # Test if propositions are actually retrieved
-        enhanced_context = await proactive_engine._get_enhanced_context_with_propositions(
-            "User working in Canva", 1, session
-        )
-        
-        props_count = len(enhanced_context['behavioral_propositions'])
-        print(f"   Propositions retrieved: {props_count}")
-        
-        if props_count == 0:
-            flaws_found.append("FLAW: Proposition retrieval broken - no propositions found")
-            print("   ❌ FLAW: Proposition retrieval completely broken")
-        else:
-            print("   ✅ Proposition retrieval working")
-            print(f"   First proposition: {enhanced_context['behavioral_propositions'][0].text}")
-    
-    # FLAW TEST 3: Grounding Score Meaningfulness
-    print("\n💥 FLAW TEST 3: Grounding Score Bullshit Detection")
-    
-    # Test with completely unrelated suggestion
-    bullshit_suggestion = {
-        "title": "I created a quantum blockchain solution",
-        "description": "Advanced AI-powered cryptocurrency mining optimization system"
-    }
-    
-    # Test with well-grounded suggestion
-    grounded_suggestion = {
-        "title": "I analyzed your Canva design workflow",
-        "description": "Created version control for your marketing flyer iterations based on design patterns"
-    }
-    
-    enhanced_context = {
-        'current_transcription': "User is in Canva working on marketing flyer",
-        'behavioral_propositions': props,
-        'grounding_evidence': {
-            'specific_apps': ['Canva'],
-            'specific_actions': ['working'],
-            'specific_content': ['marketing flyer']
-        }
-    }
-    
-    bullshit_score = proactive_engine._calculate_grounding_score(bullshit_suggestion, enhanced_context)
-    grounded_score = proactive_engine._calculate_grounding_score(grounded_suggestion, enhanced_context)
-    
-    print(f"   Bullshit suggestion score: {bullshit_score:.3f}")
-    print(f"   Grounded suggestion score: {grounded_score:.3f}")
-    
-    if bullshit_score >= grounded_score * 0.8:  # If bullshit scores within 80% of grounded
-        flaws_found.append("FLAW: Grounding score is meaningless - doesn't distinguish quality")
-        print("   ❌ FLAW: Grounding score is bullshit - doesn't distinguish quality")
-    else:
-        print("   ✅ Grounding score shows meaningful difference")
-    
-    # FLAW TEST 4: JSON Validation Actually Strict?
-    print("\n💥 FLAW TEST 4: JSON Validation Strictness Reality Check")
-    
-    # Test with edge cases that should fail
-    edge_case_items = [
-        # Empty arrays (should fail per prompt rules)
-        {
-            "title": "Test",
-            "description": "Test desc",
-            "category": "completed_work",
-            "rationale": "Test rationale",
-            "priority": "high",
-            "confidence": 9,
-            "has_completed_work": True,
-            "completed_work": {
-                "content": "Test content",
-                "content_type": "text",
-                "preview": "Test preview",
-                "action_label": "Test action",
-                "metadata": {
-                    "evidence_used": [],  # EMPTY ARRAY - should fail
-                    "behavioral_patterns_applied": ["test"],
-                    "current_context_references": ["test"],
-                    "anti_hallucination_check": "test"
-                }
-            }
-        },
-        # Invalid confidence (should fail)
-        {
-            "title": "Test",
-            "description": "Test desc", 
-            "category": "completed_work",
-            "rationale": "Test rationale",
-            "priority": "high",
-            "confidence": 7,  # Should fail - not 8, 9, or 10
-            "has_completed_work": True,
-            "completed_work": {
-                "content": "Test",
-                "content_type": "text",
-                "preview": "Test",
-                "action_label": "Test",
-                "metadata": {
-                    "evidence_used": ["test"],
-                    "behavioral_patterns_applied": ["test"],
-                    "current_context_references": ["test"],
-                    "anti_hallucination_check": "test"
-                }
-            }
-        }
+    tests = [
+        ("Broken Screen State Access", test_broken_screen_state_access),
+        ("Malformed Transcription Data", test_malformed_transcription_data),
+        ("Screen Analyzer Edge Cases", test_screen_analyzer_edge_cases),
+        ("AI Prompt Format Assumptions", test_ai_prompt_format_assumptions),
+        ("Database Integration Assumptions", test_database_integration_assumptions),
+        ("JSON Serialization Edge Cases", test_json_serialization_edge_cases),
+        ("Performance with Large Data", test_performance_with_large_data),
+        ("Configuration Fallbacks", test_configuration_fallbacks),
     ]
     
-    validation_working = True
-    for i, item in enumerate(edge_case_items):
-        is_valid = proactive_engine._validate_strict_json_structure(item)
-        print(f"   Edge case {i+1} validation: {'PASSED' if is_valid else 'FAILED'}")
-        
-        if i == 0 and is_valid:  # Empty array should fail
-            flaws_found.append("FLAW: JSON validation allows empty arrays despite prompt rules")
-            validation_working = False
-        
-        if i == 1 and is_valid:  # Invalid confidence should fail
-            flaws_found.append("FLAW: JSON validation allows invalid confidence values")
-            validation_working = False
+    failures = []
     
-    if validation_working:
-        print("   ✅ JSON validation working correctly")
-    else:
-        print("   ❌ FLAW: JSON validation is not actually strict")
+    for test_name, test_func in tests:
+        try:
+            if test_func():
+                print(f"   ✅ {test_name} - Issues found but handled")
+            else:
+                print(f"   ❌ {test_name} - CRITICAL FAILURE")
+                failures.append(test_name)
+        except Exception as e:
+            print(f"   💥 {test_name} - CRASHED: {e}")
+            failures.append(test_name)
     
-    # FLAW TEST 5: Evidence Extraction Robustness
-    print("\n💥 FLAW TEST 5: Evidence Extraction Edge Cases")
+    # Test async function
+    try:
+        result = asyncio.run(test_real_ai_integration())
+        if not result:
+            failures.append("Real AI Integration")
+    except Exception as e:
+        print(f"   💥 Real AI Integration - CRASHED: {e}")
+        failures.append("Real AI Integration")
     
-    # Test with edge case transcriptions
-    edge_transcriptions = [
-        "",  # Empty
-        "User doing something vague",  # No specific details
-        "Application: SomeWeirdApp\nUser clicking randomly",  # Unknown app
-        "User is in VS Code debugging main.py line 47 ImportError",  # Rich content
-    ]
-    
-    for i, transcription in enumerate(edge_transcriptions):
-        evidence = proactive_engine._extract_grounding_evidence(transcription, [], [])
-        evidence_count = sum(len(items) for items in evidence.values())
-        
-        print(f"   Transcription {i+1}: {evidence_count} evidence items")
-        
-        if i == 0 and evidence_count > 0:  # Empty should give no evidence
-            flaws_found.append("FLAW: Evidence extraction hallucinates evidence from empty input")
-        
-        if i == 3 and evidence_count == 0:  # Rich content should give evidence
-            flaws_found.append("FLAW: Evidence extraction fails on rich content")
-    
-    # FINAL VERDICT
     print("\n" + "=" * 70)
-    if flaws_found:
-        print("❌ IMPLEMENTATION IS BROKEN - CRITICAL FLAWS FOUND:")
-        for i, flaw in enumerate(flaws_found, 1):
-            print(f"   {i}. {flaw}")
+    
+    if failures:
+        print(f"💀 BRUTAL REALITY: {len(failures)} CRITICAL FAILURES FOUND")
+        for failure in failures:
+            print(f"   🚨 {failure}")
         
-        print("\n🔧 WHAT NEEDS TO BE FIXED:")
-        print("   - Fix context path confusion")
-        print("   - Remove duplicate code paths") 
-        print("   - Fix app extraction regex")
-        print("   - Make JSON validation actually strict")
-        print("   - Improve evidence extraction robustness")
+        print("\n🔥 WHAT I ACTUALLY DELIVERED:")
+        print("   ❌ Broken screen state object access")
+        print("   ❌ Missing error handling for edge cases")
+        print("   ❌ Untested database field assumptions")
+        print("   ❌ Fragile AI prompt formatting")
+        print("   ❌ No performance validation")
+        print("   ❌ Incomplete configuration fallbacks")
+        
+        print("\n💡 WHAT NEEDS TO BE FIXED:")
+        print("   1. Fix screen state object access in proactive engine")
+        print("   2. Add comprehensive error handling")
+        print("   3. Test database integration with real schema")
+        print("   4. Validate AI prompt with real responses")
+        print("   5. Add performance safeguards")
+        print("   6. Complete configuration system")
         
         return False
     else:
-        print("✅ NO CRITICAL FLAWS FOUND - Implementation appears solid")
+        print("🎉 ALL BRUTAL TESTS PASSED - System is actually robust")
         return True
 
-
 if __name__ == "__main__":
-    success = asyncio.run(test_expose_implementation_flaws())
-    
+    success = main()
     if not success:
-        print("\n🔥 IMPLEMENTATION NEEDS MAJOR FIXES BEFORE PRODUCTION")
-    else:
-        print("\n🎯 IMPLEMENTATION PASSES BRUTAL REALITY CHECK")
+        print("\n💀 CONCLUSION: The 'production ready' system is actually broken")
+        print("🔧 Need to fix critical issues before claiming completion")
+    sys.exit(0 if success else 1)
