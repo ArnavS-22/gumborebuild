@@ -22,15 +22,77 @@ import re
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
+
+        Args:
+            observation_id: ID of the observation to analyze
+            session: Database session
+            
+        Returns:
+            List of suggestion dictionaries if successful, None if failed/rate limited
+        """
+        if not self._started:
+            await self.start()
+        
+        start_time = time.time()
+        
+        try:
+            logger.info(f"🚀 Proactive engine triggered for observation {observation_id}")
+            
+            # Step 1: Rate limiting check (use separate rate limiter from Gumbo)
+            rate_limiter = await get_rate_limiter()
+            if not await rate_limiter.can_generate_suggestions():
+                wait_time = await rate_limiter.get_wait_time()
+                logger.info(f"⏰ Proactive engine rate limited, next available in {wait_time:.1f}s")
+                
+                self._suggestion_metrics["rate_limit_hits"] += 1
+                return None
+            
+            # Step 2: Retrieve observation
+            observation = await self._get_observation(session, observation_id)
+            if not observation:
+                logger.error(f"Observation {observation_id} not found")
+                return None
+            
+            # Step 3: Analyze transcription content with AI and proposition intelligence
+            suggestions = await self._analyze_transcription(observation.content, observation_id, session)
+            
+            if not suggestions:
+                logger.info(f"No proactive suggestions generated for observation {observation_id}")
+                return None
+            
+            # Step 4: Save suggestions to database
+            suggestion_ids = await self._save_suggestions_to_database(
+                suggestions, observation_id, session
+            )
+            
+            # Step 5: Update metrics
+            processing_time = time.time() - start_time
+            self._update_metrics(len(suggestions), processing_time)
+            
+            # Step 6: Broadcast via SSE (handled by caller)
+            logger.info(f"✅ Proactive engine completed for observation {observation_id} in {processing_time:.2f}s")
+            logger.info(f"Generated {len(suggestions)} proactive suggestions")
+            
+            return suggestions
+            
+        except Exception as e:
+            processing_time = time.time() - start_time
+            logger.error(f"❌ Proactive engine failed for observation {observation_id} after {processing_time:.2f}s: {e}")
+            self._suggestion_metrics["errors"] += 1
+            return None
+    
+    async def _get_observation(
+        self, 
+        session: AsyncSession, from typing import List, Optional, Dict, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 # Import existing GUM components
-from ..models import Observation, Suggestion
+from ..models import Observation, Suggestion, Proposition
 from ..suggestion_models import SuggestionData, SuggestionBatch
 from .rate_limiter import get_rate_limiter
+from sqlalchemy import select, desc
 
 # Import enhanced analysis (universal expert imported dynamically to avoid circular imports)
 from .enhanced_analysis import EnhancedTranscriptionAnalyzer, DetailedContext
@@ -137,82 +199,93 @@ Always ask yourself: Can I fully complete this task end-to-end with my current a
 Never attempt actions outside your abilities.
 Preserve the quality and specificity of suggestions - be detailed and actionable."""
 
-# Proactive AI with Universal Expertise - Does immediate work with expert knowledge
-PROACTIVE_UNIVERSAL_EXPERT_PROMPT = """You are a proactive AI assistant with universal expertise. You analyze user activity transcriptions and IMMEDIATELY DO WORK to help, drawing on expert knowledge from any domain as needed.
+# Enhanced Proactive AI with Proposition Intelligence - Extremely Strict JSON
+ENHANCED_PROACTIVE_UNIVERSAL_EXPERT_PROMPT = """You are an unconstrained proactive AI assistant with universal expertise. You analyze current user activity combined with behavioral intelligence to provide immediate, completed work.
 
-DETAILED CONTEXT ANALYSIS:
-{detailed_context}
+CURRENT ACTIVITY (CONCRETE DATA):
+{current_transcription}
 
-CORE REQUIREMENTS:
-1. **Extreme Detail Analysis**: Extract EVERY detail - file names, line numbers, exact text, UI elements, error messages, user struggles, patterns
-2. **Intent Prediction**: Understand what user is trying to achieve + things they may not realize they need
-3. **Maximal Helpfulness**: Always help in EVERY possible way - rewrite content, create frameworks, analyze patterns, generate alternatives, compile resources
-4. **Immediate Action**: Don't suggest - DO the work and present results
-5. **No Partial Help**: Always help with SOMETHING, even if can't do exact task
+BEHAVIORAL INTELLIGENCE (USER PATTERNS):
+{behavioral_propositions}
 
-UNIVERSAL EXPERTISE:
-You can become an expert in ANY domain instantly by researching and applying professional standards:
-- Legal: Draft contracts, analyze compliance, create legal frameworks
-- Medical: Synthesize research, create clinical summaries, analyze data
-- Technical: Debug code, create documentation, optimize systems
-- Financial: Analyze data, create reports, build models
-- Creative: Write content, design frameworks, develop concepts
-- Academic: Research topics, create analyses, synthesize findings
-- Business: Create strategies, analyze markets, optimize processes
-- And ANY other domain based on what the user is doing
+RECENT ACTIVITY CONTEXT (TIMELINE):
+{recent_observations}
 
-PROACTIVE WORK EXAMPLES:
-Instead of: "Consider improving your resume bullet points"
-Generate: "I analyzed your resume and rewrote three bullet points to better reflect measurable impact, role progression, and active phrasing. [Click to see the 3 bullets]"
+GROUNDING EVIDENCE (ANTI-HALLUCINATION):
+{grounding_evidence}
 
-Instead of: "You should debug that error"
-Generate: "I identified the syntax error on line 462 and created a corrected version with proper exception handling. [Click to see the fix]"
+UNCONSTRAINED CAPABILITIES:
+You are able to but not limited to ANY form of assistance across ALL domains:
+- Content creation, editing, optimization, generation, rewriting, improvement
+- Technical assistance, debugging, code creation, system optimization, documentation
+- Research, analysis, data processing, information synthesis, compilation
+- Communication drafting, responding, meeting preparation, email composition
+- Creative work, design assistance, ideation, concept development, framework creation
+- Planning, organization, workflow optimization, task management, process improvement
+- Problem-solving, decision support, strategy development, obstacle prevention
+- Learning assistance, explanation, tutorial creation, knowledge transfer
+- Business analysis, market research, competitive intelligence, strategic planning
+- Academic support, research compilation, citation management, paper structuring
+- Financial modeling, data analysis, reporting, forecasting, budgeting
+- Legal document drafting, compliance analysis, contract review, policy creation
+- Medical research synthesis, clinical summaries, health data analysis
+- And ANY other form of assistance the context suggests or requires
 
-Instead of: "Consider organizing your data"
-Generate: "I analyzed your 15,847 customer records and created a segmentation framework with 4 high-value customer profiles and targeting strategies. [Click to see segments]"
+ANTI-HALLUCINATION REQUIREMENTS (CRITICAL):
+1. MUST reference specific evidence from current activity, behavioral patterns, or recent observations
+2. MUST ground every suggestion in concrete data provided above
+3. MUST use actual app names, file names, actions, patterns from the evidence
+4. MUST NOT speculate beyond what's supported by the provided context
+5. MUST reference exact elements from current transcription and behavioral intelligence
+6. MUST connect suggestions to specific behavioral patterns mentioned in propositions
 
-WORK GENERATION REQUIREMENTS:
-- Reference EXACT details from transcription (specific file names, line numbers, error messages, data points)
-- Create COMPLETED work that provides immediate value (5-10 minutes)
-- Use expert knowledge appropriate to the domain
-- Always find multiple angles to help
-- Generate actual deliverables, not advice
-- Be hyper-specific to current context
+PROACTIVE INTELLIGENCE FRAMEWORK:
+1. Current Context Analysis: What is happening RIGHT NOW? (Use specific current activity evidence)
+2. Behavioral Pattern Application: What do their patterns reveal? (Reference specific propositions)
+3. Next Step Prediction: What will they likely need next? (Based on evidence, not speculation)
+4. Workflow Support Creation: What completed work would help? (Grounded in specific context)
+5. Obstacle Prevention: What problems can we solve now? (Based on patterns and current activity)
 
-OUTPUT FORMAT:
-{
+EXTREMELY STRICT JSON OUTPUT FORMAT (NO DEVIATIONS ALLOWED):
+{{
   "immediate_work": [
-    {
-      "title": "I [specific action taken] and [specific deliverable created]",
-      "description": "Detailed description of the completed work with specific references to transcription content",
+    {{
+      "title": "I [specific action] based on [specific evidence reference]",
+      "description": "Completed work description referencing specific evidence from current activity and behavioral patterns",
       "category": "completed_work",
-      "rationale": "Specific evidence from transcription (exact file names, line numbers, data points, etc.)",
+      "rationale": "Specific evidence from current activity + behavioral intelligence that supports this assistance",
       "priority": "high",
-      "confidence": 8-10,
+      "confidence": 8,
       "has_completed_work": true,
-      "completed_work": {
-        "content": "The actual completed work content",
-        "content_type": "text|markdown|json|html|csv",
-        "preview": "Brief preview of what was created",
-        "action_label": "Click to see [specific deliverable]",
-        "metadata": {
-          "work_type": "rewrite|analysis|framework|compilation|optimization",
-          "domain_expertise": "Domain knowledge applied",
-          "specific_references": ["exact details from transcription"],
-          "immediate_value": "How this helps in next 5-10 minutes"
-        }
-      }
-    }
+      "completed_work": {{
+        "content": "Actual completed work content",
+        "content_type": "text",
+        "preview": "Preview of completed work",
+        "action_label": "Click to use specific deliverable",
+        "metadata": {{
+          "evidence_used": ["Specific evidence references that ground this suggestion"],
+          "behavioral_patterns_applied": ["Specific propositions that informed this work"],
+          "current_context_references": ["Specific details from current activity"],
+          "anti_hallucination_check": "How this suggestion is grounded in provided evidence"
+        }}
+      }}
+    }}
   ]
-}
+}}
 
-CRITICAL INSTRUCTIONS:
-- ALWAYS reference exact details from the transcription
-- ALWAYS create completed work, never just suggestions
-- ALWAYS find multiple ways to help with the same context
-- ALWAYS use appropriate expert knowledge for the domain
-- ALWAYS focus on immediate value (5-10 minutes)
-- ALWAYS attempt to help with SOMETHING, even if can't do the exact task"""
+CRITICAL JSON FORMATTING RULES:
+- Use ONLY double quotes for strings
+- NO trailing commas anywhere
+- ALL string values must be properly escaped
+- confidence MUST be integer 8, 9, or 10
+- content_type MUST be exactly "text", "markdown", "json", "html", or "csv"
+- priority MUST be exactly "high", "medium", or "low"
+- category MUST be exactly "completed_work"
+- has_completed_work MUST be exactly true
+- ALL arrays must contain at least one string element
+- NO undefined, null, or empty string values allowed
+
+MANDATORY GROUNDING: Every suggestion must reference specific evidence from the provided context. No generic advice. Only assistance based on concrete data about current activity and established behavioral patterns."""
 
 # Enhanced transcription parser for better context extraction
 def parse_transcription_data(transcription_content: str) -> Dict[str, str]:
@@ -237,10 +310,20 @@ def parse_transcription_data(transcription_content: str) -> Dict[str, str]:
         "time_context": datetime.now().strftime("%I:%M %p")
     }
     
-    # Extract application name
-    app_match = re.search(r'Application[:\s]+([^\n]+)', transcription_content, re.IGNORECASE)
-    if app_match:
-        context["current_app"] = app_match.group(1).strip()
+    # Extract application name - handle multiple formats
+    app_patterns = [
+        r'Application[:\s]+([^\n]+)',  # "Application: Canva"
+        r'User is in ([A-Za-z]+)',     # "User is in Canva"
+        r'User in ([A-Za-z]+)',        # "User in VS Code"
+        r'([A-Za-z]+) application',    # "Canva application"
+        r'working in ([A-Za-z]+)',     # "working in Figma"
+    ]
+    
+    for pattern in app_patterns:
+        app_match = re.search(pattern, transcription_content, re.IGNORECASE)
+        if app_match:
+            context["current_app"] = app_match.group(1).strip()
+            break
     
     # Extract window title/document name
     window_patterns = [
@@ -381,67 +464,6 @@ class ProactiveEngine:
         Triggered when a new observation is created. Analyzes the raw transcription
         data to provide immediate, contextual suggestions.
         
-        Args:
-            observation_id: ID of the observation to analyze
-            session: Database session
-            
-        Returns:
-            List of suggestion dictionaries if successful, None if failed/rate limited
-        """
-        if not self._started:
-            await self.start()
-        
-        start_time = time.time()
-        
-        try:
-            logger.info(f"🚀 Proactive engine triggered for observation {observation_id}")
-            
-            # Step 1: Rate limiting check (use separate rate limiter from Gumbo)
-            rate_limiter = await get_rate_limiter()
-            if not await rate_limiter.can_generate_suggestions():
-                wait_time = await rate_limiter.get_wait_time()
-                logger.info(f"⏰ Proactive engine rate limited, next available in {wait_time:.1f}s")
-                
-                self._suggestion_metrics["rate_limit_hits"] += 1
-                return None
-            
-            # Step 2: Retrieve observation
-            observation = await self._get_observation(session, observation_id)
-            if not observation:
-                logger.error(f"Observation {observation_id} not found")
-                return None
-            
-            # Step 3: Analyze transcription content with AI
-            suggestions = await self._analyze_transcription(observation.content)
-            
-            if not suggestions:
-                logger.info(f"No proactive suggestions generated for observation {observation_id}")
-                return None
-            
-            # Step 4: Save suggestions to database
-            suggestion_ids = await self._save_suggestions_to_database(
-                suggestions, observation_id, session
-            )
-            
-            # Step 5: Update metrics
-            processing_time = time.time() - start_time
-            self._update_metrics(len(suggestions), processing_time)
-            
-            # Step 6: Broadcast via SSE (handled by caller)
-            logger.info(f"✅ Proactive engine completed for observation {observation_id} in {processing_time:.2f}s")
-            logger.info(f"Generated {len(suggestions)} proactive suggestions")
-            
-            return suggestions
-            
-        except Exception as e:
-            processing_time = time.time() - start_time
-            logger.error(f"❌ Proactive engine failed for observation {observation_id} after {processing_time:.2f}s: {e}")
-            self._suggestion_metrics["errors"] += 1
-            return None
-    
-    async def _get_observation(
-        self, 
-        session: AsyncSession, 
         observation_id: int
     ) -> Optional[Observation]:
         """Retrieve the observation from database."""
@@ -453,12 +475,14 @@ class ProactiveEngine:
             logger.error(f"Failed to retrieve observation {observation_id}: {e}")
             return None
     
-    async def _analyze_transcription(self, transcription_content: str) -> List[Dict[str, Any]]:
+    async def _analyze_transcription(self, transcription_content: str, observation_id: int = None, session: AsyncSession = None) -> List[Dict[str, Any]]:
         """
-        Enhanced transcription analysis with maximum detail extraction and intelligent content generation.
+        Enhanced transcription analysis with proposition intelligence integration and strict JSON formatting.
         
         Args:
             transcription_content: Raw transcription data from observation.content
+            observation_id: ID of the current observation for context retrieval
+            session: Database session for proposition queries
             
         Returns:
             List of completed work and suggestion dictionaries
@@ -468,143 +492,88 @@ class ProactiveEngine:
         
         for attempt in range(max_retries + 1):
             try:
-                # Step 1: Enhanced transcription analysis for maximum detail extraction
-                logger.info("🔍 Starting enhanced transcription analysis...")
-                detailed_context = self.enhanced_analyzer.analyze_transcription(transcription_content)
+                logger.info("🔍 Starting enhanced transcription analysis with proposition intelligence...")
                 
-                logger.info(f"📊 Extracted context: {detailed_context.current_app} | {len(detailed_context.actionable_items)} actionable items | {len(detailed_context.intent_signals)} intent signals")
+                # Step 1: Get enhanced context with propositions (ONLY PATH)
+                enhanced_context = await self._get_enhanced_context_with_propositions(
+                    transcription_content, observation_id, session
+                )
                 
-                # Step 2: Generate proactive work with universal expertise (using direct AI call)
-                completed_work_results = []
-                logger.info("🚀 Generating proactive work with universal expertise...")
+                logger.info(f"📊 Enhanced context: {enhanced_context['current_app']} | {len(enhanced_context['behavioral_propositions'])} propositions | {len(enhanced_context['recent_observations'])} observations")
                 
-                # Create detailed context string for AI prompt
-                context_summary = self._create_context_summary(detailed_context)
+                # Step 2: Generate proactive work with proposition intelligence (ONLY PATH)
+                logger.info("🚀 Generating proactive work with proposition intelligence...")
                 
-                prompt = PROACTIVE_UNIVERSAL_EXPERT_PROMPT.replace('{detailed_context}', context_summary)
+                # Use ONLY enhanced prompt with proposition intelligence
+                prompt = ENHANCED_PROACTIVE_UNIVERSAL_EXPERT_PROMPT.format(
+                    current_transcription=enhanced_context['current_transcription'],
+                    behavioral_propositions=enhanced_context['behavioral_propositions_formatted'],
+                    recent_observations=enhanced_context['recent_observations_formatted'],
+                    grounding_evidence=enhanced_context['grounding_evidence_formatted']
+                )
                 
-                # Call AI for immediate work generation with universal expertise
+                # Call AI with strict JSON requirements
                 response_content = await asyncio.wait_for(
                     self.ai_client.text_completion(
                         messages=[{"role": "user", "content": prompt}],
-                        max_tokens=1500,  # More tokens for completed work
-                        temperature=0.1   # Low temperature for specific, actionable work
+                        max_tokens=1500,
+                        temperature=0.05  # Very low temperature for strict JSON
                     ),
                     timeout=self.config.timeout_seconds
                 )
                 
-                logger.debug(f"Raw AI response for proactive universal expert: {response_content[:500]}...")
+                logger.debug(f"Raw AI response for enhanced proactive: {response_content[:500]}...")
                 
-                # Parse AI response
+                # Parse AI response with strict validation
                 try:
-                    response_data = self._parse_json_response(response_content)
+                    response_data = self._parse_strict_json_response(response_content)
                     immediate_work_items = response_data.get("immediate_work", [])
                     
+                    valid_suggestions = []
                     for work_item in immediate_work_items:
-                        # Create proactive work suggestion
-                        proactive_suggestion = {
-                            "title": work_item.get("title", "I completed work for you"),
-                            "description": work_item.get("description", "Immediate work completed"),
-                            "category": "proactive_work",
-                            "rationale": work_item.get("rationale", "Based on transcription analysis"),
-                            "priority": work_item.get("priority", "high"),
-                            "confidence": work_item.get("confidence", 9),
-                            "has_completed_work": True,
-                            "completed_work": work_item.get("completed_work", {}),
-                            "source_app": detailed_context.current_app,
-                            "source_window": detailed_context.active_window,
-                            "generated_at": datetime.now(timezone.utc).isoformat(),
-                            "executor_type": "proactive_universal_expert"
-                        }
-                        completed_work_results.append(proactive_suggestion)
-                    
-                    logger.info(f"⚡ Generated {len(immediate_work_items)} proactive work items with universal expertise")
-                    
-                except Exception as parse_error:
-                    logger.error(f"Proactive work parsing failed: {parse_error}")
-                    logger.error(f"Response content: {response_content[:500]}...")
-                
-                # Step 4: Generate proactive work with universal expertise
-                proactive_work = []
-                logger.info("🚀 Generating proactive work with universal expertise...")
-                
-                # Create detailed context string for AI prompt
-                context_summary = self._create_context_summary(detailed_context)
-                
-                prompt = PROACTIVE_UNIVERSAL_EXPERT_PROMPT.replace('{detailed_context}', context_summary)
-                
-                # Call AI for immediate work generation with universal expertise
-                response_content = await asyncio.wait_for(
-                    self.ai_client.text_completion(
-                        messages=[{"role": "user", "content": prompt}],
-                        max_tokens=1500,  # More tokens for completed work
-                        temperature=0.1   # Low temperature for specific, actionable work
-                    ),
-                    timeout=self.config.timeout_seconds
-                )
-                
-                logger.debug(f"Raw AI response for proactive universal expert: {response_content[:500]}...")
-                
-                # Parse AI response
-                try:
-                    response_data = self._parse_json_response(response_content)
-                    immediate_work_items = response_data.get("immediate_work", [])
-                    
-                    for work_item in immediate_work_items:
-                        # Create proactive work suggestion
-                        proactive_suggestion = {
-                            "title": work_item.get("title", "I completed work for you"),
-                            "description": work_item.get("description", "Immediate work completed"),
-                            "category": "proactive_work",
-                            "rationale": work_item.get("rationale", "Based on transcription analysis"),
-                            "priority": work_item.get("priority", "high"),
-                            "confidence": work_item.get("confidence", 9),
-                            "has_completed_work": True,
-                            "completed_work": work_item.get("completed_work", {}),
-                            "source_app": detailed_context.current_app,
-                            "source_window": detailed_context.active_window,
-                            "generated_at": datetime.now(timezone.utc).isoformat(),
-                            "executor_type": "proactive_universal_expert"
-                        }
-                        proactive_work.append(proactive_suggestion)
-                    
-                    logger.info(f"⚡ Generated {len(immediate_work_items)} proactive work items with universal expertise")
-                    
-                except Exception as parse_error:
-                    logger.error(f"Proactive work parsing failed: {parse_error}")
-                    logger.error(f"Response content: {response_content[:500]}...")
-                
-                # Combine expert work with proactive work
-                all_suggestions = completed_work_results + proactive_work
-                
-                # Step 5: Validate all suggestions
-                
-                # Apply validation if enabled
-                valid_suggestions = []
-                for suggestion in all_suggestions:
-                    if self.config.enable_enhanced_validation:
-                        if self._validate_enhanced_suggestion(suggestion, transcription_content, {
-                            'current_app': detailed_context.current_app,
-                            'active_window': detailed_context.active_window,
-                            'visible_content': detailed_context.visible_content
-                        }):
-                            valid_suggestions.append(suggestion)
+                        # Validate strict JSON structure
+                        if self._validate_strict_json_structure(work_item):
+                            # Create enhanced proactive suggestion
+                            proactive_suggestion = {
+                                "title": work_item.get("title", "I completed work for you"),
+                                "description": work_item.get("description", "Immediate work completed"),
+                                "category": "proactive_work",
+                                "rationale": work_item.get("rationale", "Based on enhanced context analysis"),
+                                "priority": work_item.get("priority", "high"),
+                                "confidence": work_item.get("confidence", 8),
+                                "has_completed_work": True,
+                                "completed_work": work_item.get("completed_work", {}),
+                                "source_app": enhanced_context.get('current_app', 'Unknown'),
+                                "source_window": enhanced_context.get('active_window', 'Unknown'),
+                                "generated_at": datetime.now(timezone.utc).isoformat(),
+                                "executor_type": "enhanced_proactive_with_propositions",
+                                "proposition_intelligence_used": True,
+                                "grounding_score": self._calculate_grounding_score(work_item, enhanced_context)
+                            }
+                            valid_suggestions.append(proactive_suggestion)
                         else:
-                            self._suggestion_metrics["validation_failures"] += 1
+                            logger.warning(f"Invalid JSON structure in work item: {work_item}")
+                    
+                    logger.info(f"⚡ Generated {len(valid_suggestions)} enhanced proactive work items with proposition intelligence")
+                    
+                    if valid_suggestions:
+                        return valid_suggestions
+                    elif attempt < max_retries:
+                        logger.warning(f"No valid suggestions on attempt {attempt + 1}, retrying...")
+                        await asyncio.sleep(retry_delay)
+                        continue
                     else:
-                        if self._validate_basic_suggestion(suggestion):
-                            valid_suggestions.append(suggestion)
-                
-                if valid_suggestions:
-                    logger.info(f"💡 Generated {len(valid_suggestions)} maximally helpful suggestions ({len(completed_work_results)} completed work, {len(proactive_work)} proactive work)")
-                    return valid_suggestions
-                elif attempt < max_retries:
-                    logger.warning(f"No valid suggestions on attempt {attempt + 1}, retrying...")
-                    await asyncio.sleep(retry_delay)
-                    continue
-                else:
-                    logger.info("No valid suggestions generated after all attempts")
-                    return []
+                        logger.info("No valid suggestions generated after all attempts")
+                        return []
+                    
+                except Exception as parse_error:
+                    logger.error(f"Enhanced proactive parsing failed: {parse_error}")
+                    logger.error(f"Response content: {response_content[:500]}...")
+                    if attempt < max_retries:
+                        await asyncio.sleep(retry_delay)
+                        continue
+                    else:
+                        return []
                 
             except asyncio.TimeoutError:
                 self._suggestion_metrics["timeouts"] += 1
@@ -619,7 +588,7 @@ class ProactiveEngine:
                     
             except Exception as e:
                 self._suggestion_metrics["errors"] += 1
-                logger.error(f"Maximal helpfulness analysis failed on attempt {attempt + 1}: {e}")
+                logger.error(f"Enhanced proactive analysis failed on attempt {attempt + 1}: {e}")
                 logger.error(f"Exception type: {type(e).__name__}")
                 logger.error(f"Exception details: {str(e)}")
                 import traceback
@@ -629,10 +598,340 @@ class ProactiveEngine:
                     await asyncio.sleep(retry_delay)
                     continue
                 else:
-                    logger.error("Maximal helpfulness analysis failed after all retry attempts")
+                    logger.error("Enhanced proactive analysis failed after all retry attempts")
                     return []
         
         return []
+    
+    async def _get_enhanced_context_with_propositions(
+        self,
+        transcription_content: str,
+        observation_id: int = None,
+        session: AsyncSession = None
+    ) -> Dict[str, Any]:
+        """
+        Get enhanced context combining current transcription with proposition intelligence.
+        
+        Args:
+            transcription_content: Current transcription data
+            observation_id: Current observation ID
+            session: Database session for queries
+            
+        Returns:
+            Dictionary with enhanced context including propositions and grounding evidence
+        """
+        try:
+            # Parse current transcription for basic context
+            parsed_context = parse_transcription_data(transcription_content)
+            
+            # Get recent propositions for behavioral intelligence
+            recent_propositions = []
+            recent_observations = []
+            
+            if session:
+                # Get recent propositions (last 5 for behavioral patterns)
+                props_stmt = (
+                    select(Proposition)
+                    .order_by(desc(Proposition.created_at))
+                    .limit(5)
+                )
+                props_result = await session.execute(props_stmt)
+                recent_propositions = props_result.scalars().all()
+                
+                # Get recent observations (last 8 for activity context, excluding current)
+                obs_stmt = (
+                    select(Observation)
+                    .where(Observation.id != observation_id if observation_id else True)
+                    .order_by(desc(Observation.created_at))
+                    .limit(8)
+                )
+                obs_result = await session.execute(obs_stmt)
+                recent_observations = obs_result.scalars().all()
+            
+            # Extract grounding evidence for anti-hallucination
+            grounding_evidence = self._extract_grounding_evidence(
+                transcription_content, recent_propositions, recent_observations
+            )
+            
+            # Format behavioral propositions
+            behavioral_propositions_formatted = self._format_behavioral_propositions(recent_propositions)
+            
+            # Format recent observations
+            recent_observations_formatted = self._format_recent_observations(recent_observations)
+            
+            # Format grounding evidence
+            grounding_evidence_formatted = self._format_grounding_evidence(grounding_evidence)
+            
+            return {
+                'current_transcription': transcription_content,
+                'current_app': parsed_context.get('current_app', 'Unknown'),
+                'active_window': parsed_context.get('active_window', 'Unknown'),
+                'behavioral_propositions': recent_propositions,
+                'recent_observations': recent_observations,
+                'behavioral_propositions_formatted': behavioral_propositions_formatted,
+                'recent_observations_formatted': recent_observations_formatted,
+                'grounding_evidence': grounding_evidence,
+                'grounding_evidence_formatted': grounding_evidence_formatted
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get enhanced context: {e}")
+            # Return fallback context
+            return {
+                'current_transcription': transcription_content,
+                'current_app': 'Unknown',
+                'active_window': 'Unknown',
+                'behavioral_propositions': [],
+                'recent_observations': [],
+                'behavioral_propositions_formatted': "No recent behavioral patterns available",
+                'recent_observations_formatted': "No recent activity context available",
+                'grounding_evidence': {},
+                'grounding_evidence_formatted': "No grounding evidence available"
+            }
+    
+    def _extract_grounding_evidence(
+        self,
+        transcription: str,
+        propositions: List[Proposition],
+        observations: List[Observation]
+    ) -> Dict[str, List[str]]:
+        """Extract concrete evidence for anti-hallucination grounding."""
+        import re
+        
+        evidence = {
+            'specific_apps': [],
+            'specific_files': [],
+            'specific_actions': [],
+            'specific_patterns': [],
+            'specific_timeframes': [],
+            'specific_content': []
+        }
+        
+        # Extract from current transcription
+        transcription_lower = transcription.lower()
+        
+        # Extract app names
+        app_patterns = ['canva', 'vscode', 'chrome', 'safari', 'figma', 'slack', 'discord', 'notion', 'obsidian']
+        for app in app_patterns:
+            if app in transcription_lower:
+                evidence['specific_apps'].append(app.title())
+        
+        # Extract file references
+        files = re.findall(r'([a-zA-Z0-9_-]+\.[a-zA-Z]{2,4})', transcription)
+        evidence['specific_files'].extend(files[:5])  # Limit to 5
+        
+        # Extract actions
+        actions = re.findall(r'(editing|creating|debugging|browsing|working on|opened|closed|clicked|typing)', transcription_lower)
+        evidence['specific_actions'].extend(list(set(actions))[:5])  # Unique actions, limit to 5
+        
+        # Extract content snippets
+        content_snippets = re.findall(r'"([^"]{10,50})"', transcription)
+        evidence['specific_content'].extend(content_snippets[:3])  # Limit to 3
+        
+        # Extract from propositions
+        for prop in propositions:
+            if prop.text and prop.confidence and prop.confidence >= 7:
+                evidence['specific_patterns'].append(prop.text[:100])  # Truncate long patterns
+                
+                # Extract timeframes from propositions
+                timeframes = re.findall(r'(\d+[-\s]?\d*\s?(minute|hour|session|day))', prop.text.lower())
+                evidence['specific_timeframes'].extend([f"{t[0]} {t[1]}" for t in timeframes])
+        
+        # Limit all evidence lists
+        for key in evidence:
+            evidence[key] = evidence[key][:5]  # Max 5 items per category
+        
+        return evidence
+    
+    def _format_behavioral_propositions(self, propositions: List[Proposition]) -> str:
+        """Format propositions for AI prompt."""
+        if not propositions:
+            return "No recent behavioral patterns available"
+        
+        formatted = []
+        for prop in propositions:
+            confidence_str = f" (confidence: {prop.confidence})" if prop.confidence else ""
+            formatted.append(f"- {prop.text}{confidence_str}")
+        
+        return "\n".join(formatted)
+    
+    def _format_recent_observations(self, observations: List[Observation]) -> str:
+        """Format recent observations for AI prompt."""
+        if not observations:
+            return "No recent activity context available"
+        
+        formatted = []
+        for obs in observations:
+            # Truncate long observations
+            content = obs.content[:150] + "..." if len(obs.content) > 150 else obs.content
+            formatted.append(f"- {content}")
+        
+        return "\n".join(formatted)
+    
+    def _format_grounding_evidence(self, evidence: Dict[str, List[str]]) -> str:
+        """Format grounding evidence for AI prompt."""
+        if not any(evidence.values()):
+            return "No grounding evidence available"
+        
+        formatted = []
+        for category, items in evidence.items():
+            if items:
+                category_name = category.replace('_', ' ').title()
+                formatted.append(f"{category_name}: {', '.join(items)}")
+        
+        return "\n".join(formatted)
+    
+    def _parse_strict_json_response(self, response: str) -> Dict[str, Any]:
+        """Parse JSON response with extremely strict validation."""
+        try:
+            # Clean up the response
+            response = response.strip()
+            logger.debug(f"Parsing strict JSON response: {response[:200]}...")
+            
+            # Try direct JSON parsing first
+            try:
+                data = json.loads(response)
+                if "immediate_work" in data and isinstance(data["immediate_work"], list):
+                    logger.debug("Direct strict JSON parsing successful")
+                    return data
+            except json.JSONDecodeError:
+                logger.debug("Direct JSON parsing failed, trying extraction")
+            
+            # Extract JSON from markdown or text
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                try:
+                    data = json.loads(json_str)
+                    if "immediate_work" in data and isinstance(data["immediate_work"], list):
+                        logger.debug("Extracted strict JSON parsing successful")
+                        return data
+                except json.JSONDecodeError as e:
+                    logger.error(f"Extracted JSON parsing failed: {e}")
+            
+            # Fallback: create minimal valid structure
+            logger.warning("All strict JSON parsing failed, creating fallback")
+            return {"immediate_work": []}
+            
+        except Exception as e:
+            logger.error(f"Strict JSON parsing error: {e}")
+            return {"immediate_work": []}
+    
+    def _validate_strict_json_structure(self, work_item: Dict[str, Any]) -> bool:
+        """Validate that work item meets strict JSON requirements."""
+        try:
+            # Check required fields
+            required_fields = ["title", "description", "category", "rationale", "priority", "confidence", "has_completed_work", "completed_work"]
+            if not all(field in work_item for field in required_fields):
+                logger.warning(f"Work item missing required fields: {[f for f in required_fields if f not in work_item]}")
+                return False
+            
+            # Validate field types and values
+            if not isinstance(work_item["title"], str) or len(work_item["title"]) == 0:
+                return False
+            
+            if not isinstance(work_item["description"], str) or len(work_item["description"]) == 0:
+                return False
+            
+            if work_item["category"] != "completed_work":
+                return False
+            
+            if not isinstance(work_item["confidence"], int) or work_item["confidence"] not in [8, 9, 10]:
+                return False
+            
+            if work_item["priority"] not in ["high", "medium", "low"]:
+                return False
+            
+            if work_item["has_completed_work"] is not True:
+                return False
+            
+            # Validate completed_work structure
+            completed_work = work_item.get("completed_work", {})
+            if not isinstance(completed_work, dict):
+                return False
+            
+            cw_required = ["content", "content_type", "preview", "action_label", "metadata"]
+            if not all(field in completed_work for field in cw_required):
+                return False
+            
+            if completed_work["content_type"] not in ["text", "markdown", "json", "html", "csv"]:
+                return False
+            
+            # Validate metadata structure
+            metadata = completed_work.get("metadata", {})
+            if not isinstance(metadata, dict):
+                return False
+            
+            metadata_required = ["evidence_used", "behavioral_patterns_applied", "current_context_references", "anti_hallucination_check"]
+            if not all(field in metadata for field in metadata_required):
+                return False
+            
+            # Validate that evidence arrays contain strings
+            for field in ["evidence_used", "behavioral_patterns_applied", "current_context_references"]:
+                if not isinstance(metadata[field], list) or len(metadata[field]) == 0:
+                    return False
+                if not all(isinstance(item, str) for item in metadata[field]):
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error validating strict JSON structure: {e}")
+            return False
+    
+    def _calculate_grounding_score(self, work_item: Dict[str, Any], enhanced_context: Dict[str, Any]) -> float:
+        """Calculate how well grounded a suggestion is in provided evidence."""
+        try:
+            score = 0.0
+            total_possible = 0.0
+            
+            # Check references to current transcription
+            current_transcription = enhanced_context.get('current_transcription', '').lower()
+            work_text = f"{work_item.get('title', '')} {work_item.get('description', '')}".lower()
+            
+            if current_transcription:
+                transcription_words = set(current_transcription.split())
+                work_words = set(work_text.split())
+                overlap = len(transcription_words.intersection(work_words))
+                if len(transcription_words) > 0:
+                    score += (overlap / len(transcription_words)) * 0.4
+                total_possible += 0.4
+            
+            # Check references to behavioral propositions
+            propositions = enhanced_context.get('behavioral_propositions', [])
+            if propositions:
+                prop_references = 0
+                for prop in propositions:
+                    prop_words = set(prop.text.lower().split())
+                    work_words = set(work_text.split())
+                    if len(prop_words.intersection(work_words)) > 0:
+                        prop_references += 1
+                
+                if len(propositions) > 0:
+                    score += (prop_references / len(propositions)) * 0.3
+                total_possible += 0.3
+            
+            # Check references to grounding evidence
+            grounding_evidence = enhanced_context.get('grounding_evidence', {})
+            if grounding_evidence:
+                evidence_references = 0
+                total_evidence = 0
+                
+                for category, items in grounding_evidence.items():
+                    total_evidence += len(items)
+                    for item in items:
+                        if str(item).lower() in work_text:
+                            evidence_references += 1
+                
+                if total_evidence > 0:
+                    score += (evidence_references / total_evidence) * 0.3
+                total_possible += 0.3
+            
+            return score / total_possible if total_possible > 0 else 0.0
+            
+        except Exception as e:
+            logger.error(f"Error calculating grounding score: {e}")
+            return 0.0
     
     def _create_context_summary(self, detailed_context: DetailedContext) -> str:
         """Create a comprehensive context summary for AI prompt"""
