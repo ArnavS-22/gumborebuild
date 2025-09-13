@@ -109,3 +109,4 @@ screenshots/
 
 # User cache
 .cache/gum_data.db
+gum_data.db
