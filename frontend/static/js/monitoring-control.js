@@ -1,10 +1,10 @@
 /**
- * Zavion Monitoring Control Module
+ * Gumbo Monitoring Control Module
  * Provides monitoring start/stop functionality and status polling
- * Integrates seamlessly with the existing Zavion frontend
+ * Integrates seamlessly with the existing Gumbo frontend
  */
 
-class ZavionMonitoringControl {
+class GumboMonitoringControl {
     constructor() {
         // Configuration
         this.localBackendUrl = 'http://localhost:8000';
@@ -37,16 +37,16 @@ class ZavionMonitoringControl {
      */
     async init() {
         try {
-            console.log('Zavion Monitoring Control: Starting initialization...');
+            console.log('Gumbo Monitoring Control: Starting initialization...');
             // Check if we should load on this domain
             if (this.shouldLoadOnCurrentDomain()) {
-                console.log('Zavion Monitoring Control: Domain check passed, setting up UI...');
+                console.log('Gumbo Monitoring Control: Domain check passed, setting up UI...');
                 // Wait for DOM to be ready
                 if (document.readyState === 'loading') {
-                    console.log('Zavion Monitoring Control: DOM loading, adding event listener...');
+                    console.log('Gumbo Monitoring Control: DOM loading, adding event listener...');
                     document.addEventListener('DOMContentLoaded', () => this.setupUI());
                 } else {
-                    console.log('Zavion Monitoring Control: DOM ready, setting up UI immediately...');
+                    console.log('Gumbo Monitoring Control: DOM ready, setting up UI immediately...');
                     this.setupUI();
                 }
                 
@@ -56,9 +56,9 @@ class ZavionMonitoringControl {
                 // Start connection monitoring
                 this.startConnectionMonitoring();
                 
-                console.log('Zavion Monitoring Control initialized successfully');
+                console.log('Gumbo Monitoring Control initialized successfully');
             } else {
-                console.log('Zavion Monitoring Control: Not loading on this domain');
+                console.log('Gumbo Monitoring Control: Not loading on this domain');
             }
         } catch (error) {
             console.error('Failed to initialize monitoring control:', error);
@@ -83,29 +83,29 @@ class ZavionMonitoringControl {
      * Set up the monitoring control UI
      */
     setupUI() {
-        console.log('Zavion Monitoring Control: Setting up UI...');
+        console.log('Gumbo Monitoring Control: Setting up UI...');
         try {
             // Create monitoring container
-            console.log('Zavion Monitoring Control: Creating monitoring container...');
+            console.log('Gumbo Monitoring Control: Creating monitoring container...');
             this.createMonitoringContainer();
             
             // Just add it to the body immediately - no fancy insertion
-            console.log('Zavion Monitoring Control: Adding to body...');
+            console.log('Gumbo Monitoring Control: Adding to body...');
             document.body.appendChild(this.monitoringContainer);
             
             // Set up event listeners
-            console.log('Zavion Monitoring Control: Setting up event listeners...');
+            console.log('Gumbo Monitoring Control: Setting up event listeners...');
             this.setupEventListeners();
             
             // Initial status update
-            console.log('Zavion Monitoring Control: Updating UI...');
+            console.log('Gumbo Monitoring Control: Updating UI...');
             this.updateUI();
             
-            console.log('Zavion Monitoring Control: UI setup completed successfully');
+            console.log('Gumbo Monitoring Control: UI setup completed successfully');
             
                          // Add a simple test button for debugging
              setTimeout(() => {
-                 console.log('Zavion Monitoring Control: Adding debug button...');
+                 console.log('Gumbo Monitoring Control: Adding debug button...');
                  const testButton = document.createElement('button');
                  testButton.textContent = 'DEBUG: Monitoring Control';
                  testButton.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 9999; background: #666; color: white; padding: 8px; border: none; cursor: pointer; font-size: 12px; border-radius: 4px;';
@@ -121,7 +121,7 @@ class ZavionMonitoringControl {
              }, 1000);
             
         } catch (error) {
-            console.error('Zavion Monitoring Control: Error in setupUI:', error);
+            console.error('Gumbo Monitoring Control: Error in setupUI:', error);
         }
     }
 
@@ -129,7 +129,7 @@ class ZavionMonitoringControl {
      * Create the monitoring control container
      */
     createMonitoringContainer() {
-        console.log('Zavion Monitoring Control: Creating monitoring container...');
+        console.log('Gumbo Monitoring Control: Creating monitoring container...');
         this.monitoringContainer = document.createElement('div');
         this.monitoringContainer.className = 'monitoring-control-container';
                  this.monitoringContainer.style.cssText = 'position: fixed; top: 100px; left: 20px; z-index: 9998; border: 2px solid #ddd; padding: 20px; margin: 20px; background: white; font-size: 14px; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px;';
@@ -226,7 +226,7 @@ class ZavionMonitoringControl {
      * Insert the monitoring control into the home tab
      */
     insertIntoHomeTab() {
-        console.log('Zavion Monitoring Control: Inserting into home tab...');
+        console.log('Gumbo Monitoring Control: Inserting into home tab...');
         
         // Try multiple ways to find the home panel
         let homePanel = document.getElementById('home-panel');
@@ -237,7 +237,7 @@ class ZavionMonitoringControl {
             homePanel = document.querySelector('.tab-panel');
         }
         
-        console.log('Zavion Monitoring Control: Home panel found:', !!homePanel, homePanel?.id || homePanel?.className);
+        console.log('Gumbo Monitoring Control: Home panel found:', !!homePanel, homePanel?.id || homePanel?.className);
         
         if (homePanel) {
             // Try multiple ways to find home content
@@ -249,7 +249,7 @@ class ZavionMonitoringControl {
                 homeContent = homePanel;
             }
             
-            console.log('Zavion Monitoring Control: Home content found:', !!homeContent, homeContent?.className);
+            console.log('Gumbo Monitoring Control: Home content found:', !!homeContent, homeContent?.className);
             
             if (homeContent) {
                 // Try to find welcome section
@@ -261,34 +261,34 @@ class ZavionMonitoringControl {
                     welcomeSection = homeContent.querySelector('h3');
                 }
                 
-                console.log('Zavion Monitoring Control: Welcome section found:', !!welcomeSection, welcomeSection?.className || welcomeSection?.tagName);
+                console.log('Gumbo Monitoring Control: Welcome section found:', !!welcomeSection, welcomeSection?.className || welcomeSection?.tagName);
                 
                 if (welcomeSection) {
-                    console.log('Zavion Monitoring Control: Inserting after welcome section...');
+                    console.log('Gumbo Monitoring Control: Inserting after welcome section...');
                     welcomeSection.parentNode.insertBefore(this.monitoringContainer, welcomeSection.nextSibling);
                 } else {
-                    console.log('Zavion Monitoring Control: No welcome section, appending to home content...');
+                    console.log('Gumbo Monitoring Control: No welcome section, appending to home content...');
                     homeContent.appendChild(this.monitoringContainer);
                 }
-                console.log('Zavion Monitoring Control: Successfully inserted into home tab');
+                console.log('Gumbo Monitoring Control: Successfully inserted into home tab');
             } else {
-                console.error('Zavion Monitoring Control: Could not find home-content');
+                console.error('Gumbo Monitoring Control: Could not find home-content');
                 // Fallback: try to insert at the top of the page
-                console.log('Zavion Monitoring Control: Trying fallback insertion...');
+                console.log('Gumbo Monitoring Control: Trying fallback insertion...');
                 const body = document.body;
                 if (body) {
                     body.insertBefore(this.monitoringContainer, body.firstChild);
-                    console.log('Zavion Monitoring Control: Inserted at top of body as fallback');
+                    console.log('Gumbo Monitoring Control: Inserted at top of body as fallback');
                 }
             }
         } else {
-            console.error('Zavion Monitoring Control: Could not find home-panel');
+            console.error('Gumbo Monitoring Control: Could not find home-panel');
             // Fallback: try to insert at the top of the page
-            console.log('Zavion Monitoring Control: Trying fallback insertion...');
+            console.log('Gumbo Monitoring Control: Trying fallback insertion...');
             const body = document.body;
             if (body) {
                 body.insertBefore(this.monitoringContainer, body.firstChild);
-                console.log('Zavion Monitoring Control: Inserted at top of body as fallback');
+                console.log('Gumbo Monitoring Control: Inserted at top of body as fallback');
             }
         }
     }
@@ -315,7 +315,7 @@ class ZavionMonitoringControl {
      */
     async handleToggleClick() {
         if (!this.isConnected) {
-            this.showMessage('Please ensure your local Zavion backend is running', 'warning');
+            this.showMessage('Please ensure your local Gumbo backend is running', 'warning');
             return;
         }
 
@@ -736,7 +736,7 @@ class ZavionMonitoringControl {
         }
         
         if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-            return 'Cannot connect to local backend. Please ensure Zavion is running on your machine.';
+            return 'Cannot connect to local backend. Please ensure Gumbo is running on your machine.';
         }
         
         return 'An unexpected error occurred';
@@ -779,16 +779,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Wait for the main app to be ready
     const waitForApp = () => {
         if (window.gumboApp) {
-            console.log('Zavion Monitoring Control: Main app ready, initializing...');
+            console.log('Gumbo Monitoring Control: Main app ready, initializing...');
             // Initialize monitoring control on supported domains
-            window.gumboMonitoring = new ZavionMonitoringControl();
+            window.gumboMonitoring = new GumboMonitoringControl();
             
             // Expose to global scope for debugging
             window.gumboMonitoringControl = window.gumboMonitoring;
             
-            console.log('Zavion Monitoring Control loaded');
+            console.log('Gumbo Monitoring Control loaded');
         } else {
-            console.log('Zavion Monitoring Control: Waiting for main app...');
+            console.log('Gumbo Monitoring Control: Waiting for main app...');
             setTimeout(waitForApp, 100);
         }
     };
@@ -798,5 +798,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ZavionMonitoringControl;
+    module.exports = GumboMonitoringControl;
 }

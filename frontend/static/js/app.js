@@ -1,13 +1,13 @@
 /**
- * Zavion - Frontend Application
+ * Gumbo - Frontend Application
  * Modern JavaScript application for video analysis and user behavior insights
  */
 
-class ZavionApp {
+class GumboApp {
     constructor() {
         // Use configuration from injected global variable or fallback to default
-        this.apiBaseUrl = window.ZAVION_CONFIG?.apiBaseUrl || 'http://localhost:8000';
-        console.log('Zavion Frontend initialized with API base URL:', this.apiBaseUrl);
+        this.apiBaseUrl = window.GUMBO_CONFIG?.apiBaseUrl || 'http://localhost:8000';
+        console.log('Gumbo Frontend initialized with API base URL:', this.apiBaseUrl);
         
         this.connectionStatus = 'connecting';
         this.uploadProgress = 0;
@@ -192,7 +192,7 @@ class ZavionApp {
             return response;
         } catch (error) {
             if (error.message !== 'Rate limited') {
-                this.showToast('❌ Connection error. Make sure Zavion is running.', 'error');
+                this.showToast('❌ Connection error. Make sure Gumbo is running.', 'error');
             }
             throw error;
         }
@@ -4261,7 +4261,7 @@ class ZavionApp {
 
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.gumboApp = new ZavionApp();
+    window.gumboApp = new GumboApp();
 });
 
 // Add CSS for results display dynamically
