@@ -48,7 +48,7 @@
 #### Step 1: Clone the Repository
 ```bash
 git clone <repository-url>
-cd zavionapp
+cd gumborebuild
 ```
 
 #### Step 2: Install Python Dependencies
