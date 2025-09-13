@@ -403,7 +403,7 @@ class GumboEngine:
         """
         Step 2: Contextual Retrieval
         
-        Use LLM to generate semantic search query, then retrieve related propositions
+        Use LLM to generate semantic search query, then retrieve related propositions 
         AND their attached observations for concrete content details.
         """
         start_time = time.time()

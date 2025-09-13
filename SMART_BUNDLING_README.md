@@ -6,19 +6,19 @@ The Smart Data Bundling System reduces API calls by **80%+** while improving ana
 
 ## Key Features
 
-### 🎯 **Smart Buffering**
+###  **Smart Buffering**
 - **Time-based buffers**: 5-10 minute collection windows
 - **Activity-based triggers**: Flush on significant user activity
 - **Size-based limits**: Prevent memory issues with automatic cleanup
 - **Multi-monitor support**: Independent buffers per monitor
 
-### 📊 **Batch Analysis**
+###  **Batch Analysis**
 - **5-15 frames per API call** instead of 1 frame per call
 - **Temporal context**: Analyze behavior patterns over time
 - **Comprehensive insights**: Better understanding of user workflows
 - **Enhanced prompts**: Multi-frame analysis with timeline information
 
-### ⚡ **Performance Benefits**
+###  **Performance Benefits**
 - **80%+ API reduction**: From 500+ calls/minute to <50 calls/minute
 - **Better accuracy**: Temporal context improves behavioral insights
 - **Memory efficient**: Automatic cleanup prevents memory leaks

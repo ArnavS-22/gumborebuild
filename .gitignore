@@ -108,4 +108,4 @@ screenshots/
 *.tiff
 
 # User cache
-.cache/
+.cache/gum_data.db
