@@ -59,14 +59,14 @@
             const statusText = document.getElementById('statusText');
             
             // Load saved username
-            const savedUsername = localStorage.getItem('zavion-username');
+            const savedUsername = localStorage.getItem('gumbo-username');
             if (savedUsername) {
                 usernameInput.value = savedUsername;
             }
             
             // Save username on change
             usernameInput.addEventListener('change', (e) => {
-                localStorage.setItem('zavion-username', e.target.value);
+                localStorage.setItem('gumbo-username', e.target.value);
             });
             
             // Test button clicks

@@ -3068,9 +3068,9 @@ async def test_trigger_gumbo():
             # Import and trigger
             from gum.services.gumbo_engine import trigger_gumbo_suggestions
             
-            # Fire and forget
+            # Wait for Gumbo to complete - let it create its own session
             import asyncio
-            asyncio.create_task(trigger_gumbo_suggestions(recent_prop.id, session))
+            result = await trigger_gumbo_suggestions(recent_prop.id, None)
             
             return {
                 "message": "Gumbo test triggered successfully",

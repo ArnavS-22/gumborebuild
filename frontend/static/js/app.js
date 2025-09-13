@@ -870,7 +870,7 @@ class ZavionApp {
         toast.innerHTML = `
             <i class="${icons[type] || icons.info}" aria-hidden="true"></i>
             <span>${message}</span>
-            <button class="toast-close" onclick="window.zavionApp.closeToast('${toastId}')">
+            <button class="toast-close" onclick="window.gumboApp.closeToast('${toastId}')">
                 <i class="fas fa-times"></i>
             </button>
         `;
@@ -2124,7 +2124,7 @@ class ZavionApp {
                             const confidence = prop.confidence || 0;
                             const confidenceClass = confidence >= 80 ? 'confidence-high' : confidence >= 60 ? 'confidence-medium' : confidence >= 40 ? 'confidence-low' : 'confidence-none';
                             return `
-                                <div class="timeline-proposition-card" onclick="event.stopPropagation(); window.zavionApp?.togglePropositionDetails(${prop.id})">
+                                <div class="timeline-proposition-card" onclick="event.stopPropagation(); window.gumboApp?.togglePropositionDetails(${prop.id})">
                                     <div class="timeline-proposition-header">
                                         <span class="timeline-proposition-time">${timeLabel}</span>
                                         <span class="confidence-badge ${confidenceClass}">
@@ -2658,7 +2658,7 @@ class ZavionApp {
                     const shortTitle = suggestionTitle.length > 30 ? suggestionTitle.substring(0, 30) + '...' : suggestionTitle;
                     
                     return `
-                        <div class="cursor-suggestion-item" onclick="window.zavionApp?.switchToSuggestionsTab()">
+                        <div class="cursor-suggestion-item" onclick="window.gumboApp?.switchToSuggestionsTab()">
                             <div class="cursor-suggestion-icon">
                                 <i class="${getFileIcon(suggestion.type || 'general')}"></i>
                             </div>
@@ -3336,8 +3336,8 @@ class ZavionApp {
                             <div class="main-text">Connection Error</div>
                             <div class="sub-text">${data?.message || 'Failed to fetch suggestions'}</div>
                         </div>
-                        <button class="retry-btn" onclick="window.zavionApp.fetchSuggestions()">🔄 Retry</button>
-                        <button class="retry-btn" onclick="window.zavionApp.initializeSuggestionPolling()">🔄 Restart Polling</button>
+                        <button class="retry-btn" onclick="window.gumboApp.fetchSuggestions()">🔄 Retry</button>
+                        <button class="retry-btn" onclick="window.gumboApp.initializeSuggestionPolling()">🔄 Restart Polling</button>
                     </div>
                 `;
                 break;
@@ -3350,7 +3350,7 @@ class ZavionApp {
                         <div class="error-icon">⚠️</div>
                         <h3>Stream ${status === 'error' ? 'Error' : 'Disconnected'}</h3>
                         <p>${data?.message || 'Unable to connect to suggestion stream'}</p>
-                        <button class="retry-btn" onclick="window.zavionApp.initializeSuggestionStream()">🔄 Reconnect</button>
+                        <button class="retry-btn" onclick="window.gumboApp.initializeSuggestionStream()">🔄 Reconnect</button>
                     </div>
                 `;
                 break;
@@ -3698,11 +3698,11 @@ class ZavionApp {
                     </div>
                     
                     <div class="completed-work-actions">
-                        <button class="primary-action-btn" onclick="window.zavionApp.viewCompletedWork(${index})">
+                        <button class="primary-action-btn" onclick="window.gumboApp.viewCompletedWork(${index})">
                             <i class="fas fa-external-link-alt"></i>
                             ${actionLabel}
                         </button>
-                        <button class="secondary-action-btn" onclick="window.zavionApp.copyCompletedWork(${index})">
+                        <button class="secondary-action-btn" onclick="window.gumboApp.copyCompletedWork(${index})">
                             <i class="fas fa-copy"></i>
                             Copy
                         </button>
@@ -3752,7 +3752,7 @@ class ZavionApp {
                     </div>
                 ` : ''}
                 <div class="suggestion-actions">
-                    <button class="action-btn" onclick="window.zavionApp.copySuggestion(${index})">
+                    <button class="action-btn" onclick="window.gumboApp.copySuggestion(${index})">
                         <i class="fas fa-copy"></i> Copy
                     </button>
                     ${isProactive ? `
@@ -3846,11 +3846,11 @@ class ZavionApp {
                     </div>
                 </div>
                 <div class="modal-actions">
-                    <button class="primary-btn" onclick="window.zavionApp.copyCompletedWorkFromModal('${suggestion.id || index}')">
+                    <button class="primary-btn" onclick="window.gumboApp.copyCompletedWorkFromModal('${suggestion.id || index}')">
                         <i class="fas fa-copy"></i>
                         Copy Content
                     </button>
-                    <button class="secondary-btn" onclick="window.zavionApp.downloadCompletedWork('${suggestion.id || index}')">
+                    <button class="secondary-btn" onclick="window.gumboApp.downloadCompletedWork('${suggestion.id || index}')">
                         <i class="fas fa-download"></i>
                         Download
                     </button>
@@ -4164,7 +4164,7 @@ class ZavionApp {
             const timeLabel = insight.created_at ? this.formatLocalTime(insight.created_at) : 'Unknown time';
             
             return `
-                <div class="timeline-proposition-card" onclick="window.zavionApp?.switchTab('memory')">
+                <div class="timeline-proposition-card" onclick="window.gumboApp?.switchTab('memory')">
                     <div class="timeline-proposition-header">
                         <span class="timeline-proposition-time">${timeLabel}</span>
                         <span class="confidence-badge ${confidenceClass}">
@@ -4261,7 +4261,7 @@ class ZavionApp {
 
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.zavionApp = new ZavionApp();
+    window.gumboApp = new ZavionApp();
 });
 
 // Add CSS for results display dynamically

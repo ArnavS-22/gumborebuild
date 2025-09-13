@@ -8,7 +8,7 @@ class ZavionMonitoringControl {
     constructor() {
         // Configuration
         this.localBackendUrl = 'http://localhost:8000';
-        this.hostedDomain = 'https://zavion.app';
+        this.hostedDomain = 'https://gumbo.app';
         this.pollingInterval = 10000; // 10 seconds
         this.maxRetries = 3;
         this.retryDelay = 2000;
@@ -71,8 +71,8 @@ class ZavionMonitoringControl {
     shouldLoadOnCurrentDomain() {
         const hostname = window.location.hostname;
         console.log('Checking domain:', hostname);
-        const shouldLoad = hostname === 'zavion.app' || 
-                          hostname === 'www.zavion.app' || 
+        const shouldLoad = hostname === 'gumbo.app' || 
+                          hostname === 'www.gumbo.app' || 
                           hostname === 'localhost' || 
                           hostname === '127.0.0.1';
         console.log('Should load monitoring control:', shouldLoad);
@@ -778,13 +778,13 @@ alert('MONITORING CONTROL SCRIPT IS LOADING!');
 document.addEventListener('DOMContentLoaded', () => {
     // Wait for the main app to be ready
     const waitForApp = () => {
-        if (window.zavionApp) {
+        if (window.gumboApp) {
             console.log('Zavion Monitoring Control: Main app ready, initializing...');
             // Initialize monitoring control on supported domains
-            window.zavionMonitoring = new ZavionMonitoringControl();
+            window.gumboMonitoring = new ZavionMonitoringControl();
             
             // Expose to global scope for debugging
-            window.zavionMonitoringControl = window.zavionMonitoring;
+            window.gumboMonitoringControl = window.gumboMonitoring;
             
             console.log('Zavion Monitoring Control loaded');
         } else {

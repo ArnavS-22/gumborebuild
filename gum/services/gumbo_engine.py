@@ -1093,19 +1093,575 @@ async def get_gumbo_engine() -> GumboEngine:
     return _global_engine
 
 
-async def trigger_gumbo_suggestions(proposition_id: int, session: AsyncSession) -> Optional[SuggestionBatch]:
+    # ===============================
+    # WHISPER REASONING METHODS
+    # ===============================
+
+    async def _understand_scenario(
+        self,
+        session: AsyncSession,
+        proposition_id: int,
+        context_result: ContextRetrievalResult
+    ) -> Optional[Dict[str, Any]]:
+        """
+        WHISPER Layer 1: Scenario Understanding
+
+        Analyze all input data to understand what the user is accomplishing.
+        """
+        try:
+            # Get the trigger proposition
+            trigger_prop = await self._get_trigger_proposition(session, proposition_id)
+            if not trigger_prop:
+                logger.error("No trigger proposition found for scenario understanding")
+                return None
+
+            # Prepare comprehensive context
+            propositions_text = f"TRIGGER: {trigger_prop.text}\nREASONING: {trigger_prop.reasoning}"
+
+            # Add related propositions
+            if context_result.related_propositions:
+                propositions_text += "\n\nRELATED PATTERNS:\n"
+                for prop in context_result.related_propositions[:5]:
+                    propositions_text += f"- {prop.text} (confidence: {prop.confidence})\n"
+
+            # Add observations
+            observations_text = ""
+            if context_result.all_observations:
+                observations_text = "\nRAW OBSERVATIONS:\n"
+                for obs in context_result.all_observations[:10]:
+                    content = obs.get('content', '')[:200]
+                    obs_type = obs.get('content_type', 'unknown')
+                    observations_text += f"- [{obs_type}] {content}...\n"
+
+            # Add screen context
+            screen_text = context_result.screen_content or "No current screen context available"
+
+            # WHISPER Scenario Understanding Prompt
+            scenario_prompt = f"""You are an expert behavioral analyst. Analyze all this data and understand what the user is accomplishing:
+
+PROPOSITIONS: {propositions_text}
+OBSERVATIONS: {observations_text}
+SCREEN DATA: {screen_text}
+
+Based on all this information, provide a comprehensive understanding of:
+1. What is the user currently doing?
+2. What is their immediate context?
+3. What are they trying to accomplish?
+4. What is their current state of mind/focus?
+5. What challenges or obstacles are they facing?
+6. What is the broader context of their activity?
+
+Provide a detailed, reasoned analysis in this exact JSON format:
+{{
+    "current_activity": "Brief description of what user is doing",
+    "immediate_context": "Current environment and tools",
+    "accomplishment_goal": "What they are trying to achieve",
+    "state_of_mind": "Their current focus and mental state",
+    "challenges": ["Challenge 1", "Challenge 2", "Challenge 3"],
+    "broader_context": "Larger project or situation context"
+}}"""
+
+            # Call AI for scenario understanding
+            response = await asyncio.wait_for(
+                self.ai_client.text_completion([{"role": "user", "content": scenario_prompt}], max_tokens=600),
+                timeout=30.0
+            )
+
+            # Parse and validate response
+            scenario_data = self._parse_json_response(response, "scenario_understanding")
+            if not scenario_data or "current_activity" not in scenario_data:
+                logger.error("Invalid scenario understanding response")
+                return None
+
+            logger.info(f"🎭 Scenario understood: {scenario_data.get('current_activity', 'Unknown')}")
+            return scenario_data
+
+        except Exception as e:
+            logger.error(f"Scenario understanding failed: {e}")
+            return None
+
+    async def _reason_about_goals(
+        self,
+        scenario_understanding: Dict[str, Any],
+        context_result: ContextRetrievalResult
+    ) -> Optional[Dict[str, Any]]:
+        """
+        WHISPER Layer 2: Goal Reasoning
+
+        Use reasoning model to think deeply about user's goals.
+        """
+        try:
+            # WHISPER Goal Reasoning Prompt
+            goal_prompt = f"""You are an expert goal analyst using advanced reasoning. Think deeply about the user's goals:
+
+SCENARIO: {json.dumps(scenario_understanding, indent=2)}
+CONTEXT: {len(context_result.related_propositions)} related patterns, {len(context_result.all_observations)} observations
+
+Reason through:
+1. What is the user's primary goal? (explicit and implicit)
+2. What are their secondary goals?
+3. What is their timeline and urgency?
+4. What are their constraints and limitations?
+5. What is their skill level and experience?
+6. What is their preferred working style?
+7. What are their immediate next steps to achieve their goal?
+8. What would be most helpful to them right now?
+
+Think step by step about what the user is trying to achieve and what would be most valuable to them in their current situation.
+
+Provide analysis in this exact JSON format:
+{{
+    "primary_goal": "Main objective they are working toward",
+    "secondary_goals": ["Goal 1", "Goal 2", "Goal 3"],
+    "timeline": "Timeframe and urgency level",
+    "constraints": ["Constraint 1", "Constraint 2"],
+    "skill_level": "Their experience level",
+    "working_style": "How they prefer to work",
+    "immediate_next_steps": ["Step 1", "Step 2", "Step 3"],
+    "most_helpful": "What would help them most right now"
+}}"""
+
+            # Call AI for goal reasoning
+            response = await asyncio.wait_for(
+                self.ai_client.text_completion([{"role": "user", "content": goal_prompt}], max_tokens=800),
+                timeout=30.0
+            )
+
+            # Parse and validate response
+            goal_data = self._parse_json_response(response, "goal_reasoning")
+            if not goal_data or "primary_goal" not in goal_data:
+                logger.error("Invalid goal reasoning response")
+                return None
+
+            logger.info(f"🎯 Goals reasoned: {goal_data.get('primary_goal', 'Unknown')}")
+            return goal_data
+
+        except Exception as e:
+            logger.error(f"Goal reasoning failed: {e}")
+            return None
+
+    async def _predict_next_move(
+        self,
+        goal_reasoning: Dict[str, Any],
+        scenario_understanding: Dict[str, Any],
+        context_result: ContextRetrievalResult
+    ) -> Optional[Dict[str, Any]]:
+        """
+        WHISPER Layer 3: Next Move Prediction
+
+        Predict what user will do next based on goals and data.
+        """
+        try:
+            # WHISPER Next Move Prediction Prompt
+            prediction_prompt = f"""You are a user behavior predictor. Based on goals and current situation, predict their next move:
+
+GOALS: {json.dumps(goal_reasoning, indent=2)}
+SCENARIO: {json.dumps(scenario_understanding, indent=2)}
+CONTEXT: {len(context_result.related_propositions)} patterns, {len(context_result.all_observations)} observations
+
+Think about:
+1. What is the user most likely to do next?
+2. What would be the most useful thing I could prepare for them?
+3. What specific content would help them achieve their goal?
+4. What format would be most helpful? (code, documentation, examples, etc.)
+5. What level of detail do they need?
+6. What would save them the most time?
+7. What would prevent them from getting stuck?
+8. What would give them confidence to continue?
+
+Consider: Are they brainstorming? Writing code? What catalyst can assist them?
+
+Provide prediction in this exact JSON format:
+{{
+    "predicted_action": "What they'll likely do next",
+    "useful_preparation": "What to prepare for them",
+    "specific_content": "Exact content that would help",
+    "content_format": "code_completion|documentation|examples|explanation",
+    "detail_level": "high|medium|low",
+    "time_saving": "Estimated time saved",
+    "stuck_prevention": "How this prevents getting stuck",
+    "confidence_boost": "How this gives confidence"
+}}"""
+
+            # Call AI for next move prediction
+            response = await asyncio.wait_for(
+                self.ai_client.text_completion([{"role": "user", "content": prediction_prompt}], max_tokens=600),
+                timeout=30.0
+            )
+
+            # Parse and validate response
+            prediction_data = self._parse_json_response(response, "next_move_prediction")
+            if not prediction_data or "predicted_action" not in prediction_data:
+                logger.error("Invalid next move prediction response")
+                return None
+
+            logger.info(f"🔮 Next move predicted: {prediction_data.get('predicted_action', 'Unknown')}")
+            return prediction_data
+
+        except Exception as e:
+            logger.error(f"Next move prediction failed: {e}")
+            return None
+
+    async def _determine_delivery_strategy(
+        self,
+        next_move_prediction: Dict[str, Any],
+        goal_reasoning: Dict[str, Any],
+        scenario_understanding: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        WHISPER Layer 4: Delivery Strategy
+
+        Determine best delivery strategy for the prepared content.
+        """
+        try:
+            # WHISPER Delivery Strategy Prompt
+            strategy_prompt = f"""You are a content delivery strategist. Determine the best delivery approach:
+
+PREDICTION: {json.dumps(next_move_prediction, indent=2)}
+GOALS: {json.dumps(goal_reasoning, indent=2)}
+SCENARIO: {json.dumps(scenario_understanding, indent=2)}
+
+Decide:
+1. Should this be a suggestion or prepared content?
+2. If suggestion: What should the message be?
+3. If prepared content: What specific content should I generate?
+4. What format is most appropriate? (text, code, link, document, etc.)
+5. What tone should I use? (helpful, urgent, casual, professional)
+6. How should I position this in the UI?
+7. What button text would be most clear?
+8. What would make the user most likely to engage?
+
+Consider constraints:
+- Can I actually generate the content they need?
+- Is this safe and appropriate to offer?
+- Will this actually help them achieve their goal?
+- Is this the right time to offer this?
+
+Choose the most effective delivery approach in this exact JSON format:
+{{
+    "delivery_type": "prepared_content|suggestion",
+    "message": "UI message to show user",
+    "content_type": "code|documentation|example|explanation",
+    "specific_content": "What content to generate",
+    "tone": "helpful|professional|urgent|casual",
+    "positioning": "near_cursor|top_right|bottom_left",
+    "button_text": "Use Code|View Help|Try This",
+    "engagement_strategy": "Why they'll click",
+    "safety_check": "passed|failed",
+    "helpfulness_score": 8.5,
+    "timing_score": 9.0
+}}"""
+
+            # Call AI for delivery strategy
+            response = await asyncio.wait_for(
+                self.ai_client.text_completion([{"role": "user", "content": strategy_prompt}], max_tokens=500),
+                timeout=30.0
+            )
+
+            # Parse and validate response
+            strategy_data = self._parse_json_response(response, "delivery_strategy")
+            if not strategy_data or "delivery_type" not in strategy_data:
+                logger.error("Invalid delivery strategy response")
+                return None
+
+            logger.info(f"📦 Delivery strategy: {strategy_data.get('delivery_type', 'Unknown')}")
+            return strategy_data
+
+        except Exception as e:
+            logger.error(f"Delivery strategy determination failed: {e}")
+            return None
+
+    async def _generate_prepared_content(
+        self,
+        delivery_strategy: Dict[str, Any],
+        context_result: ContextRetrievalResult
+    ) -> Optional[Dict[str, Any]]:
+        """
+        WHISPER Layer 5: Content Generation
+
+        Generate the actual prepared content.
+        """
+        try:
+            # WHISPER Content Generation Prompt
+            content_prompt = f"""You are a content generator. Generate the specific prepared content:
+
+STRATEGY: {json.dumps(delivery_strategy, indent=2)}
+CONTEXT: {len(context_result.related_propositions)} patterns, {len(context_result.all_observations)} observations
+
+Generate the actual content that will be most helpful:
+1. Make it complete and ready to use
+2. Include all necessary context and instructions
+3. Format it properly for the user's needs
+4. Add helpful comments and explanations
+5. Ensure it follows best practices
+6. Make it production-ready
+7. Include usage examples if helpful
+8. Add any necessary imports or dependencies
+
+The content should be exactly what the user needs to continue their work and achieve their goal.
+
+Provide the generated content in this exact JSON format:
+{{
+    "content": "The actual generated content",
+    "content_type": "code_completion|documentation|example",
+    "completeness": "complete|partial",
+    "production_ready": true,
+    "includes_documentation": true,
+    "includes_error_handling": true,
+    "includes_logging": false,
+    "usage_example": "How to use the content",
+    "dependencies": ["pandas", "numpy"],
+    "help_text": "What this content provides"
+}}"""
+
+            # Call AI for content generation
+            response = await asyncio.wait_for(
+                self.ai_client.text_completion([{"role": "user", "content": content_prompt}], max_tokens=1000),
+                timeout=45.0  # Longer timeout for content generation
+            )
+
+            # Parse and validate response
+            content_data = self._parse_json_response(response, "prepared_content")
+            if not content_data or "content" not in content_data:
+                logger.error("Invalid prepared content response")
+                return None
+
+            logger.info(f"📝 Content generated: {len(content_data.get('content', ''))} chars")
+            return content_data
+
+        except Exception as e:
+            logger.error(f"Prepared content generation failed: {e}")
+            return None
+
+    async def _create_whisper_ui_data(
+        self,
+        prepared_content: Dict[str, Any],
+        delivery_strategy: Dict[str, Any],
+        next_move_prediction: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        WHISPER Layer 6: UI Delivery
+
+        Transform all data into Whisper UI format.
+        """
+        try:
+            ui_data = {
+                "id": str(uuid.uuid4()),
+                "title": delivery_strategy.get("message", "Here's some help"),
+                "message": prepared_content.get("help_text", "Prepared content for you"),
+                "action_type": delivery_strategy.get("content_type", "general"),
+                "button_text": delivery_strategy.get("button_text", "Use This"),
+                "positioning": delivery_strategy.get("positioning", "near_cursor"),
+                "content": prepared_content.get("content", ""),
+                "confidence": delivery_strategy.get("helpfulness_score", 0.8),
+                "helpfulness": delivery_strategy.get("helpfulness_score", 8.0),
+                "timing": delivery_strategy.get("timing_score", 8.0),
+                "rationale": next_move_prediction.get("stuck_prevention", "This should help you continue"),
+                "usage_example": prepared_content.get("usage_example", ""),
+                "dependencies": prepared_content.get("dependencies", [])
+            }
+
+            logger.info(f"🎨 UI data created: {ui_data['id']}")
+            return ui_data
+
+        except Exception as e:
+            logger.error(f"UI data creation failed: {e}")
+            return None
+
+    # ===============================
+    # ENHANCED TRIGGER METHOD WITH WHISPER
+    # ===============================
+
+    async def trigger_whisper_suggestions(
+        self,
+        proposition_id: int,
+        session: AsyncSession
+    ) -> Optional[SuggestionBatch]:
+        """
+        Enhanced trigger method with full WHISPER reasoning chain.
+
+        This implements the complete 5-layer WHISPER system:
+        1. Scenario Understanding
+        2. Goal Reasoning
+        3. Next Move Prediction
+        4. Delivery Strategy
+        5. Content Generation
+        6. UI Delivery
+        """
+        start_time = time.time()
+        session_id = str(uuid.uuid4())
+
+        try:
+            logger.info(f"🧠 WHISPER triggered for proposition {proposition_id}")
+
+            # Step 1: Rate limiting check
+            if not await self.rate_limiter.can_generate_suggestions():
+                wait_time = await self.rate_limiter.get_wait_time()
+                logger.info(f"⏰ WHISPER rate limited, next available in {wait_time:.1f}s")
+                return None
+
+            # Step 2: Get trigger proposition
+            trigger_prop = await self._get_trigger_proposition(session, proposition_id)
+            if not trigger_prop:
+                logger.error(f"Trigger proposition {proposition_id} not found")
+                return None
+
+            # Step 3: Contextual retrieval (reuse existing method)
+            context_result = await self._contextual_retrieval(session, trigger_prop)
+
+            # ===============================
+            # WHISPER REASONING CHAIN
+            # ===============================
+
+            # Layer 1: Scenario Understanding
+            scenario = await self._understand_scenario(session, proposition_id, context_result)
+            if not scenario:
+                logger.warning("Scenario understanding failed, falling back to standard suggestions")
+                return await self.trigger_gumbo_suggestions(proposition_id, session)
+
+            # Layer 2: Goal Reasoning
+            goals = await self._reason_about_goals(scenario, context_result)
+            if not goals:
+                logger.warning("Goal reasoning failed, falling back to standard suggestions")
+                return await self.trigger_gumbo_suggestions(proposition_id, session)
+
+            # Layer 3: Next Move Prediction
+            prediction = await self._predict_next_move(goals, scenario, context_result)
+            if not prediction:
+                logger.warning("Next move prediction failed, falling back to standard suggestions")
+                return await self.trigger_gumbo_suggestions(proposition_id, session)
+
+            # Layer 4: Delivery Strategy
+            strategy = await self._determine_delivery_strategy(prediction, goals, scenario)
+            if not strategy:
+                logger.warning("Delivery strategy failed, falling back to standard suggestions")
+                return await self.trigger_gumbo_suggestions(proposition_id, session)
+
+            # Layer 5: Content Generation
+            content = await self._generate_prepared_content(strategy, context_result)
+            if not content:
+                logger.warning("Content generation failed, falling back to standard suggestions")
+                return await self.trigger_gumbo_suggestions(proposition_id, session)
+
+            # Layer 6: UI Delivery
+            ui_data = await self._create_whisper_ui_data(content, strategy, prediction)
+            if not ui_data:
+                logger.warning("UI data creation failed, falling back to standard suggestions")
+                return await self.trigger_gumbo_suggestions(proposition_id, session)
+
+            # ===============================
+            # CREATE WHISPER-ENHANCED SUGGESTION
+            # ===============================
+
+            processing_time = time.time() - start_time
+
+            # Create a single, highly-targeted suggestion from WHISPER
+            whisper_suggestion = SuggestionData(
+                title=ui_data["title"],
+                description=content["content"],
+                probability_useful=min(0.95, ui_data["confidence"]),
+                rationale=ui_data["rationale"],
+                category="whisper_prepared_content",
+                expected_utility=ui_data["helpfulness"]
+            )
+
+            # Create suggestion batch
+            batch = SuggestionBatch(
+                suggestions=[whisper_suggestion],
+                trigger_proposition_id=proposition_id,
+                generated_at=datetime.now(timezone.utc),
+                processing_time_seconds=processing_time,
+                context_propositions_used=len(context_result.related_propositions),
+                batch_id=session_id
+            )
+
+            # Save to database
+            suggestion_ids = await self._save_suggestions_to_database(batch, session)
+
+            # Broadcast via SSE
+            await self._broadcast_suggestion_batch(batch)
+
+            # Mark as delivered
+            if suggestion_ids:
+                await self._mark_suggestions_delivered(suggestion_ids, session)
+
+            logger.info(f"✅ WHISPER completed for proposition {proposition_id} in {processing_time:.2f}s")
+            return batch
+
+        except Exception as e:
+            processing_time = time.time() - start_time
+            logger.error(f"❌ WHISPER failed for proposition {proposition_id} after {processing_time:.2f}s: {e}")
+
+            # Notify SSE clients about error
+            await self._broadcast_sse_event(SSEEvent(
+                event=SSEEventType.ERROR,
+                data={
+                    "error_type": "whisper_generation_failed",
+                    "message": f"WHISPER reasoning failed: {str(e)}",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "proposition_id": proposition_id
+                }
+            ))
+
+            # Fallback to standard suggestions
+            logger.info("Falling back to standard Gumbo suggestions")
+            return await self.trigger_gumbo_suggestions(proposition_id, session)
+
+
+async def trigger_gumbo_suggestions(proposition_id: int, session: Optional[AsyncSession] = None, enable_whisper: bool = False) -> Optional[SuggestionBatch]:
     """
-    Convenience function to trigger Gumbo suggestions.
-    
+    Convenience function to trigger Gumbo suggestions with optional WHISPER enhancement.
+
     This is the main entry point called from gum/gum.py when a high-confidence
     proposition is created.
+
+    Args:
+        proposition_id: ID of the trigger proposition
+        session: Database session (optional - will create own if None)
+        enable_whisper: Whether to use WHISPER reasoning instead of standard suggestions
+
+    Returns:
+        SuggestionBatch if successful, None if failed/rate limited
     """
     try:
         engine = await get_gumbo_engine()
-        return await engine.trigger_gumbo_suggestions(proposition_id, session)
+        
+        # Create own session if none provided
+        if session is None:
+            from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+            from sqlalchemy.orm import sessionmaker
+            
+            # Create database connection - use the same path as GUM instance
+            import os
+            db_path = os.path.expanduser('~/.cache/gum/gum.db')
+            db_engine = create_async_engine(f'sqlite+aiosqlite:///{db_path}')
+            async_session = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+            
+            async with async_session() as new_session:
+                if enable_whisper:
+                    return await engine.trigger_whisper_suggestions(proposition_id, new_session)
+                else:
+                    return await engine.trigger_gumbo_suggestions(proposition_id, new_session)
+        else:
+            # Use provided session
+            if enable_whisper:
+                return await engine.trigger_whisper_suggestions(proposition_id, session)
+            else:
+                return await engine.trigger_gumbo_suggestions(proposition_id, session)
+
     except Exception as e:
-        logger.error(f"Failed to trigger Gumbo suggestions: {e}")
+        logger.error(f"Failed to trigger suggestions: {e}")
         return None
+
+
+# WHISPER-enhanced version for gradual rollout
+async def trigger_whisper_enhanced_suggestions(proposition_id: int, session: AsyncSession) -> Optional[SuggestionBatch]:
+    """
+    Trigger suggestions with WHISPER enhancement.
+
+    This function provides WHISPER-powered suggestions with the same interface.
+    """
+    return await trigger_gumbo_suggestions(proposition_id, session, enable_whisper=True)
 
 
 async def shutdown_gumbo_engine():

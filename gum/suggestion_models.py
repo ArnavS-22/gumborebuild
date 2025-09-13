@@ -160,4 +160,125 @@ class ContextRetrievalResult(BaseModel):
     retrieval_time_seconds: float
     semantic_query: str
     screen_content: Optional[str] = Field(None, description="Current screen content for enhanced context")
+    all_observations: List[Dict[str, Any]] = Field(default_factory=list, description="All raw observations for context")
+# WHISPER Multi-Layer Reasoning Models
+
+class ScenarioUnderstanding(BaseModel):
+    """Layer 1: Comprehensive understanding of user's current scenario."""
+    current_activity: str = Field(..., description="What the user is currently doing")
+    immediate_context: str = Field(..., description="Immediate context of their activity")
+    accomplishment_goal: str = Field(..., description="What they're trying to accomplish")
+    state_of_mind: str = Field(..., description="Current state of mind/focus")
+    challenges: List[str] = Field(default_factory=list, description="Challenges or obstacles they're facing")
+    broader_context: str = Field(..., description="Broader context of their activity")
+
+
+class GoalReasoning(BaseModel):
+    """Layer 2: Deep reasoning about user's goals."""
+    primary_goal: str = Field(..., description="User's primary goal")
+    secondary_goals: List[str] = Field(default_factory=list, description="Secondary goals")
+    timeline: str = Field(..., description="Timeline and urgency")
+    constraints: List[str] = Field(default_factory=list, description="Constraints and limitations")
+    skill_level: str = Field(..., description="User's skill level and experience")
+    working_style: str = Field(..., description="Preferred working style")
+    immediate_next_steps: List[str] = Field(default_factory=list, description="Immediate next steps")
+    most_helpful: str = Field(..., description="What would be most helpful right now")
+
+
+class NextMovePrediction(BaseModel):
+    """Layer 3: Prediction of user's next move."""
+    predicted_action: str = Field(..., description="Most likely next action")
+    useful_preparation: str = Field(..., description="What would be useful to prepare")
+    specific_content: str = Field(..., description="Specific content that would help")
+    content_format: str = Field(..., description="Best format for the content")
+    detail_level: str = Field(..., description="Appropriate level of detail")
+    time_saving: str = Field(..., description="How this saves time")
+    stuck_prevention: str = Field(..., description="How this prevents getting stuck")
+    confidence_boost: str = Field(..., description="How this builds confidence")
+
+
+class DeliveryStrategy(BaseModel):
+    """Layer 4: Strategy for delivering assistance."""
+    delivery_type: str = Field(..., description="Type of delivery (suggestion/prepared_content)")
+    message: str = Field(..., description="Message/title to show user")
+    content_type: str = Field(..., description="Type of content to generate")
+    specific_content: str = Field(..., description="The actual content to show/generate")
+    tone: str = Field(..., description="Tone to use in delivery")
+    positioning: str = Field(..., description="UI positioning")
+    button_text: str = Field(..., description="Button text")
+    engagement_strategy: str = Field(..., description="Strategy to engage user")
+    safety_check: str = Field(..., description="Safety validation result")
+    helpfulness_score: float = Field(..., ge=1, le=10, description="Helpfulness score 1-10")
+    timing_score: float = Field(..., ge=1, le=10, description="Timing appropriateness 1-10")
+
+
+class PreparedContent(BaseModel):
+    """Layer 5: Generated prepared content."""
+    content: str = Field(..., description="The actual generated content")
+    content_type: str = Field(..., description="Type of content generated")
+    completeness: str = Field(..., description="Level of completeness")
+    production_ready: bool = Field(..., description="Whether it's production-ready")
+    includes_documentation: bool = Field(..., description="Includes documentation")
+    includes_error_handling: bool = Field(..., description="Includes error handling")
+    includes_logging: bool = Field(..., description="Includes logging")
+    usage_example: str = Field(..., description="Usage example")
+    dependencies: List[str] = Field(default_factory=list, description="Required dependencies")
+    help_text: str = Field(..., description="Brief description of what this provides")
+
+
+class WhisperUIData(BaseModel):
+    """Layer 6: UI data for frontend rendering."""
+    id: str = Field(..., description="Unique identifier")
+    title: str = Field(..., description="Bubble title")
+    message: str = Field(..., description="Main message")
+    action_type: str = Field(..., description="Type of action (code_completion, etc.)")
+    button_text: str = Field(..., description="Button text")
+    positioning: str = Field(..., description="UI positioning")
+    content: str = Field(..., description="Content to show")
+    confidence: float = Field(..., ge=0, le=1, description="Confidence score")
+    helpfulness: float = Field(..., ge=1, le=10, description="Helpfulness score")
+    timing: float = Field(..., ge=1, le=10, description="Timing score")
+    rationale: str = Field(..., description="AI rationale")
+    usage_example: str = Field(..., description="Usage example")
+    dependencies: List[str] = Field(default_factory=list, description="Dependencies")
+
+
+class WhisperSession(BaseModel):
+    """Tracks complete WHISPER reasoning session."""
+    id: str = Field(..., description="Session ID")
+    trigger_proposition_id: int = Field(..., description="Trigger proposition ID")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Session creation time")
+    processing_time_seconds: float = Field(..., description="Total processing time")
+    session_status: str = Field(..., description="Session status")
+
+    # Reasoning chain results
+    scenario_understanding: Optional[ScenarioUnderstanding] = None
+    goal_reasoning: Optional[GoalReasoning] = None
+    next_move_prediction: Optional[NextMovePrediction] = None
+    delivery_strategy: Optional[DeliveryStrategy] = None
+    prepared_content: Optional[PreparedContent] = None
+    whisper_ui_data: Optional[WhisperUIData] = None
+
+    # Error tracking
+    errors: List[str] = Field(default_factory=list, description="Errors encountered during processing")
+    fallback_used: bool = Field(default=False, description="Whether fallback was used")
+
+
+# WHISPER SSE Events
+class WhisperBubbleSSEData(BaseModel):
+    """WHISPER bubble event data."""
+    session_id: str
+    whisper_data: WhisperUIData
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Enhanced SSE Event Types
+class EnhancedSSEEventType(str, Enum):
+    """Enhanced SSE event types including WHISPER."""
+    SUGGESTIONS_AVAILABLE = "suggestions_available"
+    SUGGESTION_BATCH = "suggestion_batch"
+    WHISPER_BUBBLE = "whisper_bubble"
+    HEARTBEAT = "heartbeat"
+    RATE_LIMITED = "rate_limited"
+    ERROR = "error"
     all_observations: List[Dict[str, Any]] = Field(default_factory=list, description="All raw observations from related propositions")

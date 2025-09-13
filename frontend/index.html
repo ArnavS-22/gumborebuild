@@ -6,7 +6,6 @@
     <title>Zavion</title>
     <link rel="stylesheet" href="static/css/styles.css?v=9">
     <link rel="stylesheet" href="static/css/suggestions.css">
-    <link rel="stylesheet" href="static/css/chatbot.css">
     <link rel="stylesheet" href="static/css/completed-work.css">
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
@@ -117,15 +116,11 @@
                         <i class="fas fa-list-alt"></i>
                         <span title="Computer History">Computer History</span>
                     </button>
-                    <button class="tab-button" data-tab="suggestions" onclick="window.zavionApp?.switchTab('suggestions')">
+                    <button class="tab-button" data-tab="suggestions" onclick="window.gumboApp?.switchTab('suggestions')">
                         <i class="fas fa-lightbulb"></i>
                         Suggestions
                     </button>
-                    <button class="tab-button" data-tab="chatbot" onclick="window.zavionApp?.switchTab('chatbot')">
-                        <i class="fas fa-robot"></i>
-                        AI Assistant
-                    </button>
-                    <button class="tab-button" data-tab="settings" onclick="window.zavionApp?.switchTab('settings')">
+                    <button class="tab-button" data-tab="settings" onclick="window.gumboApp?.switchTab('settings')">
                         <i class="fas fa-cog"></i>
                         Settings
                     </button>
@@ -146,27 +141,27 @@
                             <div class="cursor-logo-text">Zavion</div>
                         </div>
                         <div class="cursor-settings-link">
-                            <a href="#" onclick="window.zavionApp?.switchTab('settings')">Settings</a>
+                            <a href="#" onclick="window.gumboApp?.switchTab('settings')">Settings</a>
                         </div>
                     </div>
 
                     <!-- Main Action Buttons -->
                     <div class="cursor-actions">
-                        <button class="cursor-action-button" onclick="window.zavionApp?.switchTab('timeline')">
+                        <button class="cursor-action-button" onclick="window.gumboApp?.switchTab('timeline')">
                             <div class="cursor-button-icon">
                                 <i class="fas fa-clock"></i>
                             </div>
                             <div class="cursor-button-text">View Timeline</div>
                         </button>
                         
-                        <button class="cursor-action-button" onclick="window.zavionApp?.switchTab('memory')">
+                        <button class="cursor-action-button" onclick="window.gumboApp?.switchTab('memory')">
                             <div class="cursor-button-icon">
                                 <i class="fas fa-brain"></i>
                             </div>
                             <div class="cursor-button-text">Browse Memory</div>
                         </button>
                         
-                        <button class="cursor-action-button" onclick="window.zavionApp?.switchTab('narrative-timeline')">
+                        <button class="cursor-action-button" onclick="window.gumboApp?.switchTab('narrative-timeline')">
                             <div class="cursor-button-icon">
                                 <i class="fas fa-list-alt"></i>
                             </div>
@@ -348,7 +343,7 @@
                     </h2>
                     <p>Discover personalized recommendations and actionable insights based on your activity patterns and behavioral data.</p>
                     <div class="suggestions-actions">
-                        <button id="clearSuggestionsBtn" class="clear-suggestions-btn" onclick="window.zavionApp?.clearAllSuggestions()">
+                        <button id="clearSuggestionsBtn" class="clear-suggestions-btn" onclick="window.gumboApp?.clearAllSuggestions()">
                             <i class="fas fa-trash"></i>
                             Clear All Suggestions
                         </button>
@@ -364,132 +359,6 @@
                 </div>
             </div>
 
-            <!-- Chatbot Tab -->
-            <div class="tab-panel" id="chatbot-panel" role="tabpanel" aria-labelledby="chatbotTab">
-                <div class="chatbot-container">
-                    <!-- Chat Messages Container -->
-                    <div class="chatbot-messages" id="chatbot-messages">
-                        <!-- Welcome Background -->
-                        <div class="welcome-background">
-                            <div class="logo-wrap">
-                                <div class="ai-icon"></div>
-                            </div>
-                            <div class="welcome">
-                                <div class="title">Ready to assist you</div>
-                                <div class="subtitle">Ask me anything or try one of the suggestions below</div>
-                            </div>
-                        </div>
-                        <!-- Messages will appear here -->
-                    </div>
-                    
-                    <!-- Enhanced Input Card -->
-                    <div class="chatbot-input-card">
-                        <!-- Input Row -->
-                        <div class="input-row">
-                            <input id="chatbot-input" placeholder="Ask me anything..." aria-label="Ask me anything" />
-                        </div>
-
-                        <!-- Uploaded Files Chips -->
-                        <div id="chips" class="chips hidden" aria-live="polite"></div>
-
-                        <!-- Action Row -->
-                        <div class="action-row">
-                            <div class="toggles" role="toolbar" aria-label="Options">
-                                <button class="toggle-btn" id="btnSearch" data-key="search" title="Search">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35"/>
-                                        <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/>
-                                    </svg>
-                                    <span>Search</span>
-                                </button>
-
-                                <button class="toggle-btn" id="btnDeep" data-key="deep" title="Deep Research">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="2"/>
-                                        <circle cx="12" cy="12" r="3" fill="currentColor"/>
-                                    </svg>
-                                    <span>Deep Research</span>
-                                </button>
-
-                                <button class="toggle-btn" id="btnReason" data-key="reason" title="Reason">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M12 3v18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                        <path d="M6 7v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                        <path d="M18 7v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                    </svg>
-                                    <span>Reason</span>
-                                </button>
-                            </div>
-
-                            <div class="actions-right">
-                                <button class="icon-btn" id="micBtn" title="Mic" aria-label="Mic">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M12 1v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                        <path d="M8 5v4a4 4 0 0 0 8 0V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                    </svg>
-                                </button>
-
-                                <button id="chatbot-send" class="send-btn disabled" title="Send" aria-label="Send" disabled>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        <path d="M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="0"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Upload Row -->
-                        <div class="upload-row">
-                            <button id="uploadBtn" class="upload-btn" aria-label="Upload files">
-                                <span id="uploadIcon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                        <path d="M5 12l7-9 7 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                    </svg>
-                                </span>
-                                <span id="uploadText">Upload Files</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Categories -->
-                    <div class="categories" id="categories">
-                        <button class="cat-btn" data-cat="learn" aria-expanded="false">
-                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M4 19h16M4 5h16M8 7v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span>Learn</span>
-                        </button>
-
-                        <button class="cat-btn" data-cat="code" aria-expanded="false">
-                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M16 18l6-6-6-6M8 6L2 12l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span>Code</span>
-                        </button>
-
-                        <button class="cat-btn" data-cat="write" aria-expanded="false">
-                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <path d="M16.5 3.5L21 8l-9 9H7v-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span>Write</span>
-                        </button>
-                    </div>
-
-                    <!-- Suggestions (expandable) -->
-                    <div id="suggestionsContainer" class="suggestions-wrap" style="height:0; opacity:0;">
-                        <div class="suggestions">
-                            <div class="header">
-                                <strong id="suggestionsHeader">Suggestions</strong>
-                            </div>
-                            <ul id="suggestionsList">
-                                <!-- filled by JS -->
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Settings Tab -->
             <div class="tab-panel" id="settings-panel" role="tabpanel" aria-labelledby="settingsTab">
@@ -506,7 +375,7 @@
                 
                 <div class="settings-content">
                     <div class="settings-options">
-                        <button class="settings-option-button" onclick="window.zavionApp?.switchTab('memory')">
+                        <button class="settings-option-button" onclick="window.gumboApp?.switchTab('memory')">
                             <i class="fas fa-brain"></i>
                             <div class="option-content">
                                 <div class="option-title">Memory</div>
@@ -514,7 +383,7 @@
                             </div>
                             <i class="fas fa-chevron-right"></i>
                         </button>
-                        <button class="settings-option-button" onclick="window.zavionApp?.clearAllCaches()">
+                        <button class="settings-option-button" onclick="window.gumboApp?.clearAllCaches()">
                             <i class="fas fa-broom"></i>
                             <div class="option-content">
                                 <div class="option-title">Clear All Caches</div>
@@ -531,7 +400,7 @@
                 <div class="memory-header">
                     <div class="memory-header-top">
                         <div class="memory-header-left">
-                            <button class="back-button" onclick="window.zavionApp?.switchTab('settings')">
+                            <button class="back-button" onclick="window.gumboApp?.switchTab('settings')">
                                 <i class="fas fa-arrow-left"></i>
                                 Back to Settings
                             </button>
@@ -626,7 +495,6 @@
 
 
     <script src="static/js/app.js?v=2"></script>
-    <script src="static/js/chatbot.js"></script>
 
     <!-- CLI Tracking Toggle Script -->
     <script>

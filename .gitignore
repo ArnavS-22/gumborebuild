@@ -1,12 +1,5 @@
-# Environment
-.env
-data
-examples
-skypilot.yaml
-test_gum.py
-
 # Python
-__pycache__
+__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -26,91 +19,93 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # Virtual Environment
 venv/
 env/
 ENV/
-.env/
-.venv/
 env.bak/
 venv.bak/
 
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+frontend/.env
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
-.DS_Store
+*~
 
-# Testing
-.coverage
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.pid
+*.cache
+
+# Node modules (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Frontend build
+frontend/dist/
+frontend/build/
+
+# Test coverage
 htmlcov/
-.pytest_cache/
-.tox/
-.nox/
+.coverage
 .coverage.*
-.cache
-nosetests.xml
 coverage.xml
 *.cover
-*.py,cover
 .hypothesis/
+.pytest_cache/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# pyenv
+.python-version
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
+# Backup files
+*.backup
+*.bak
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+# Screenshots and user data
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/ 
+# User cache
+.cache/

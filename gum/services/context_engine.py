@@ -1,8 +1,8 @@
 """
-Context Engine - Intelligent Context Retrieval for Chatbot
+Context Engine - Intelligent Context Retrieval for GUM
 
 Production-grade context retrieval system that intelligently gathers relevant
-data from multiple sources to provide comprehensive context for chatbot responses.
+data from multiple sources to provide comprehensive context for AI suggestions.
 
 Data Sources:
 1. Transcription Data - Raw screen content and user interactions
@@ -46,7 +46,7 @@ class ContextEngine:
     Intelligent context retrieval and fusion engine.
     
     This engine intelligently retrieves and combines data from multiple sources
-    to provide comprehensive context for chatbot responses.
+    to provide comprehensive context for AI suggestions.
     """
     
     def __init__(self, session_factory):
